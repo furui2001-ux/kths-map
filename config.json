@@ -3,49 +3,53 @@
   "floors": {
     "1F": {
       "image": "1F.jpg",
-      "widthMeters": 235,
-      "heightMeters": 150,
-      "mapNorthDeg": 12,
-      "anchors": [
+      "widthMeters": 10,
+      "heightMeters": 10,
+      "mapNorthDeg": 0,
+      "points": [
         {
-          "label": "玄関",
-          "nx": 0.82,
-          "ny": 0.3
+          "id": "P01",
+          "label": "地点1",
+          "note": "",
+          "nx": 0.30,
+          "ny": 0.30
         },
         {
-          "label": "階段前",
-          "nx": 0.74,
-          "ny": 0.52
+          "id": "P02",
+          "label": "地点2",
+          "note": "",
+          "nx": 0.70,
+          "ny": 0.70
         }
       ]
     },
     "2F": {
       "image": "2F.jpg",
-      "widthMeters": 235,
-      "heightMeters": 150,
-      "mapNorthDeg": 12,
-      "anchors": []
+      "widthMeters": 10,
+      "heightMeters": 10,
+      "mapNorthDeg": 0,
+      "points": []
     },
     "3F": {
       "image": "3F.jpg",
-      "widthMeters": 235,
-      "heightMeters": 150,
-      "mapNorthDeg": 12,
-      "anchors": []
+      "widthMeters": 10,
+      "heightMeters": 10,
+      "mapNorthDeg": 0,
+      "points": []
     },
     "4F": {
       "image": "4F.jpg",
-      "widthMeters": 235,
-      "heightMeters": 150,
-      "mapNorthDeg": 12,
-      "anchors": []
+      "widthMeters": 10,
+      "heightMeters": 10,
+      "mapNorthDeg": 0,
+      "points": []
     },
     "5F": {
       "image": "5F.jpg",
-      "widthMeters": 235,
-      "heightMeters": 150,
-      "mapNorthDeg": 12,
-      "anchors": []
+      "widthMeters": 10,
+      "heightMeters": 10,
+      "mapNorthDeg": 0,
+      "points": []
     }
   }
 }

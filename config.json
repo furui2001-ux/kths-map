@@ -1,0 +1,46 @@
+{
+  "appTitle": "フロアマップ",
+  "floors": {
+    "1F": {
+      "image": "1F.jpg",
+      "widthMeters": 9.5,
+      "heightMeters": 10.5,
+      "mapNorthDeg": 0,
+      "anchors": [
+        { "label": "玄関", "nx": 0.82, "ny": 0.30 },
+        { "label": "階段前", "nx": 0.74, "ny": 0.52 }
+      ]
+    },
+    "2F": {
+      "image": "2F.jpg",
+      "widthMeters": 9.5,
+      "heightMeters": 10.5,
+      "mapNorthDeg": 0,
+      "anchors": [
+        { "label": "ホール", "nx": 0.76, "ny": 0.42 },
+        { "label": "洋室1", "nx": 0.32, "ny": 0.24 }
+      ]
+    },
+    "3F": {
+      "image": "3F.jpg",
+      "widthMeters": 9.5,
+      "heightMeters": 10.5,
+      "mapNorthDeg": 0,
+      "anchors": []
+    },
+    "4F": {
+      "image": "4F.jpg",
+      "widthMeters": 9.5,
+      "heightMeters": 10.5,
+      "mapNorthDeg": 0,
+      "anchors": []
+    },
+    "5F": {
+      "image": "5F.jpg",
+      "widthMeters": 9.5,
+      "heightMeters": 10.5,
+      "mapNorthDeg": 0,
+      "anchors": []
+    }
+  }
+}

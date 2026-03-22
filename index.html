@@ -197,9 +197,9 @@
       position: absolute;
       width: 0;
       height: 0;
-      border-left: 16px solid transparent;
-      border-right: 16px solid transparent;
-      border-bottom: 48px solid rgba(30, 144, 255, 0.35);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 20px solid rgba(30, 144, 255, 0.35);
       transform-origin: 50% 85%;
       left: 50%;
       top: 50%;
@@ -589,7 +589,7 @@
       accuracyCircle.style.left = x + "px";
       accuracyCircle.style.top = y + "px";
 
-      const circlePx = Math.max(20, Math.min(180, lastAccuracyMeters * 2));
+      const circlePx = Math.max(10, Math.min(80, lastAccuracyMeters * 0.8));
       accuracyCircle.style.width = circlePx + "px";
       accuracyCircle.style.height = circlePx + "px";
       accuracyCircle.style.display = gpsEnabled ? "block" : "none";

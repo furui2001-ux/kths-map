@@ -223,6 +223,7 @@
       top: 50%;
       z-index: 10;
       pointer-events: none;
+      transform-origin: center;
     }
 
     #dot.animate {
@@ -617,10 +618,11 @@
       dot.style.left = x + "px";
       dot.style.top = y + "px";
 
+      const scale = mapImage.clientWidth / mapImage.naturalWidth;
+      dot.style.transform = `translate(-50%, -50%) scale(${1 / scale})`;
+
       label.style.left = x + "px";
       label.style.top = y + "px";
-      label.textContent = currentPosition.label || "GPS現在地";
-      label.style.display = isAdmin ? "block" : "none";
 
       renderAccuracyCircle();
       renderHeading();

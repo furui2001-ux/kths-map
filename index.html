@@ -657,38 +657,37 @@
     }
 
     function switchFloor(floor) {
-      if (gpsEnabled) {
-        stopGPSInternal();
-      }
+  if (gpsEnabled) {
+    stopGPSInternal();
+  }
 
-      if (qrEnabled) {
-        stopQrScanInternal();
-      }
+  if (qrEnabled) {
+    stopQrScanInternal();
+  }
 
-      manualMode = false;
-      pointMode = false;
-      resetAnchor();
+  manualMode = false;
+  pointMode = false;
+  resetAnchor();
 
-      currentFloor = floor;
-      currentPosition = {
-        floor: floor,
-        nx: 0.5,
-        ny: 0.5,
-        label: "現在地"
-      };
+  currentFloor = floor;
+  currentPosition = {
+    floor: floor,
+    nx: currentPosition.nx,
+    ny: currentPosition.ny,
+    label: currentPosition.label || "現在地"
+  };
 
-      updateFloorButtons();
-      updateAdminFields();
-      updateModeButtons();
+  updateFloorButtons();
+  updateAdminFields();
+  updateModeButtons();
 
-      setMapImageForFloor(floor);
+  setMapImageForFloor(floor);
 
-      mapImage.onload = () => {
-        renderPosition();
-        updateStatus(`状態: ${floor}を表示中`);
-      };
-    }
-
+  mapImage.onload = () => {
+    renderPosition();
+    updateStatus(`状態: ${floor}を表示中`);
+  };
+}
     function saveFloorMeta() {
       const f = getFloorConfig(currentFloor);
       f.widthMeters = Number(widthMetersRange.value);

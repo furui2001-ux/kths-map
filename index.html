@@ -657,10 +657,7 @@
     }
 
     function switchFloor(floor) {
-  if (gpsEnabled) {
-    stopGPSInternal();
-  }
-
+  
   if (qrEnabled) {
     stopQrScanInternal();
   }
@@ -909,10 +906,7 @@
             return;
           }
 
-          if (anchor.floor !== currentFloor) {
-            return;
-          }
-
+         
           const metersPerDegLat = 111320;
           const meanLatRad = ((anchor.baseLat + lat) / 2) * Math.PI / 180;
           const metersPerDegLon = 111320 * Math.cos(meanLatRad);

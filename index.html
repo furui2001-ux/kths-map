@@ -609,7 +609,9 @@
     let motionEnabled = false;
     let stepDetectionEnabled = false;
     let lastAccelMag = null;
+    let smoothedAccelMag = null;
     let lastStepTimestamp = 0;
+    let risingEdgeArmed = false;
 
     const GPS_GOOD_ACCURACY = 4;
     const GPS_BAD_ACCURACY = 6;
@@ -744,7 +746,9 @@
     function resetStepTracking() {
       stepCount = 0;
       lastAccelMag = null;
+      smoothedAccelMag = null;
       lastStepTimestamp = 0;
+      risingEdgeArmed = false;
       updateTrackingInfo();
     }
 
@@ -781,19 +785,42 @@
         (acc.z || 0) * (acc.z || 0)
       );
 
-      if (lastAccelMag == null) {
-        lastAccelMag = mag;
+      if (smoothedAccelMag == null) {
+        smoothedAccelMag = mag;
+        lastAccelMag = 0;
         return;
       }
 
-      const diff = mag - lastAccelMag;
-      lastAccelMag = mag;
+      // 平滑化して、手持ち歩行でも拾いやすくする
+      smoothedAccelMag = smoothedAccelMag * 0.82 + mag * 0.18;
+
+      // 重力込み加速度の基準からのズレを使う
+      const dynamic = mag - smoothedAccelMag;
+      lastAccelMag = dynamic;
 
       const now = Date.now();
-      if (diff > 1.2 && now - lastStepTimestamp > 400) {
-        lastStepTimestamp = now;
-        stepCount += 1;
-        moveByStep(stepLengthMeters);
+      const STEP_UP_THRESHOLD = 0.75;
+      const STEP_DOWN_THRESHOLD = -0.55;
+      const STEP_MIN_INTERVAL = 320;
+      const STEP_MAX_INTERVAL = 1200;
+
+      if (!risingEdgeArmed && dynamic > STEP_UP_THRESHOLD) {
+        risingEdgeArmed = true;
+      }
+
+      if (risingEdgeArmed && dynamic < STEP_DOWN_THRESHOLD) {
+        const dt = now - lastStepTimestamp;
+        if (dt > STEP_MIN_INTERVAL && dt < STEP_MAX_INTERVAL) {
+          lastStepTimestamp = now;
+          stepCount += 1;
+          moveByStep(stepLengthMeters);
+        }
+        risingEdgeArmed = false;
+      }
+
+      // 長く反応がないときは判定状態を戻す
+      if (now - lastStepTimestamp > 1500 && dynamic < 0.2) {
+        risingEdgeArmed = false;
       }
     }
 

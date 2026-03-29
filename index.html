@@ -390,6 +390,138 @@
       text-align: center;
     }
 
+
+    .status-bar {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+      white-space: normal;
+      min-height: 2.8em;
+    }
+
+    .action-section {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .action-section button.action-primary {
+      min-height: 58px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .action-section button.settings-trigger {
+      background: #f8fafc;
+      border: 1px solid #dbe2ea;
+      color: #374151;
+    }
+
+    .settings-sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      display: none;
+      z-index: 150;
+    }
+
+    .settings-sheet-backdrop.open {
+      display: block;
+    }
+
+    .settings-sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      box-shadow: 0 -10px 35px rgba(0,0,0,0.18);
+      padding: 16px 16px 22px;
+      transform: translateY(105%);
+      transition: transform .25s ease;
+      z-index: 160;
+      max-width: 760px;
+      margin: 0 auto;
+      max-height: 82vh;
+      overflow-y: auto;
+    }
+
+    .settings-sheet.open {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 52px;
+      height: 6px;
+      border-radius: 999px;
+      background: #d1d5db;
+      margin: 0 auto 12px;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .sheet-header h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .sheet-close {
+      border: 1px solid #d1d5db;
+      background: #fff;
+      font-weight: 700;
+    }
+
+    .sheet-card {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .sheet-card h4 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .mini-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .mini-actions button {
+      border: 1px solid #d1d5db;
+      background: #fff;
+      min-height: 44px;
+      font-weight: 700;
+    }
+
+    .settings-admin-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .settings-admin-actions button {
+      border: 1px solid #d1d5db;
+      background: #fff;
+      min-height: 44px;
+      font-weight: 700;
+    }
+
     @media (max-width: 640px) {
       .floor-tabs {
         gap: 8px;
@@ -445,27 +577,12 @@
     </section>
 
     <section class="action-section">
-      <button id="gpsBtn" onclick="toggleGPS()">GPS追従</button>
-      <button id="manualBtn" onclick="toggleManualMode()">手動補正</button>
-      <button id="qrBtn" onclick="toggleQR()">QR補正</button>
+      <button id="gpsBtn" class="action-primary" onclick="toggleGPS()">GPS追従</button>
+      <button id="manualBtn" class="action-primary" onclick="toggleManualMode()">手動補正</button>
+      <button id="qrBtn" class="action-primary" onclick="toggleQR()">QR補正</button>
+      <button id="settingsBtn" class="action-primary settings-trigger" type="button" onclick="toggleSettingsSheet(true)">設定 ⚙️</button>
       <button id="pointBtn" onclick="togglePointMode()">地点追加</button>
       <button id="adminBtn" onclick="toggleAdminPanel()">管理者設定</button>
-    </section>
-
-    <section class="tracking-section">
-      <div class="tracking-mode-row">
-        <button id="modeGpsBtn" type="button" onclick="setTrackingMode('gps')">GPS</button>
-        <button id="modeStepBtn" type="button" onclick="setTrackingMode('step')">歩数</button>
-        <button id="modeAutoBtn" type="button" onclick="setTrackingMode('auto')">自動</button>
-        <button id="modeStopBtn" type="button" onclick="setTrackingMode('off')">停止</button>
-      </div>
-
-      <div class="tracking-settings-row">
-        <label for="stepLengthInput">1歩(m)</label>
-        <input id="stepLengthInput" type="number" min="0.30" max="1.20" step="0.01" value="0.70">
-      </div>
-
-      <div id="trackingInfo" class="tracking-info">追従モード: 停止</div>
     </section>
 
     <div id="qrReaderWrap">
@@ -511,6 +628,47 @@
       <textarea id="configOutput"></textarea>
       <input id="qrTextOutput" readonly placeholder="選択した地点のQR文字列が表示されます">
     </div>
+
+    <div id="settingsBackdrop" class="settings-sheet-backdrop" onclick="toggleSettingsSheet(false)"></div>
+    <aside id="settingsSheet" class="settings-sheet" aria-hidden="true">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3>設定</h3>
+        <button class="sheet-close" type="button" onclick="toggleSettingsSheet(false)">閉じる</button>
+      </div>
+
+      <div class="sheet-card">
+        <h4>追従方法</h4>
+        <div class="tracking-mode-row">
+          <button id="modeGpsBtn" type="button" onclick="setTrackingMode('gps')">GPS</button>
+          <button id="modeStepBtn" type="button" onclick="setTrackingMode('step')">歩数</button>
+          <button id="modeAutoBtn" type="button" onclick="setTrackingMode('auto')">自動</button>
+          <button id="modeStopBtn" type="button" onclick="setTrackingMode('off')">停止</button>
+        </div>
+        <div class="tracking-settings-row">
+          <label for="stepLengthInput">1歩(m)</label>
+          <input id="stepLengthInput" type="number" min="0.30" max="1.20" step="0.01" value="0.70">
+        </div>
+        <div id="trackingInfo" class="tracking-info">追従モード: 停止</div>
+      </div>
+
+      <div class="sheet-card">
+        <h4>表示</h4>
+        <div class="mini-actions">
+          <button type="button" onclick="resetViewTransform(); toggleSettingsSheet(false);">表示リセット</button>
+          <button type="button" onclick="centerMapToCurrentPosition(); toggleSettingsSheet(false);">現在地を中央へ</button>
+        </div>
+      </div>
+
+      <div class="sheet-card" id="settingsAdminCard" style="display:none;">
+        <h4>管理者</h4>
+        <div class="settings-admin-actions">
+          <button type="button" onclick="togglePointMode();">地点追加</button>
+          <button type="button" onclick="toggleAdminPanel();">詳細設定</button>
+        </div>
+        <div class="admin-note" style="margin-bottom:0;">管理者URLで開いたときだけ利用できます。</div>
+      </div>
+    </aside>
   </main>
 
 
@@ -534,6 +692,10 @@
     const manualBtn = document.getElementById("manualBtn");
     const pointBtn = document.getElementById("pointBtn");
     const adminBtn = document.getElementById("adminBtn");
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsBackdrop = document.getElementById("settingsBackdrop");
+    const settingsSheet = document.getElementById("settingsSheet");
+    const settingsAdminCard = document.getElementById("settingsAdminCard");
 
     const adminCurrentFloor = document.getElementById("adminCurrentFloor");
     const widthMetersRange = document.getElementById("widthMetersRange");
@@ -649,6 +811,21 @@
 
     function updateStatus(html) {
       statusEl.innerHTML = html;
+    }
+
+    function toggleSettingsSheet(open) {
+      settingsBackdrop.classList.toggle("open", open);
+      settingsSheet.classList.toggle("open", open);
+      settingsSheet.setAttribute("aria-hidden", open ? "false" : "true");
+      if (open) {
+        settingsAdminCard.style.display = isAdmin ? "block" : "none";
+      }
+    }
+
+    function centerMapToCurrentPosition() {
+      viewTranslateX = 0;
+      viewTranslateY = 0;
+      applyMapTransform();
     }
 
     function resolveTrackingSource() {
@@ -850,6 +1027,8 @@
       manualBtn.textContent = manualMode ? "手動補正中" : "手動補正";
       pointBtn.textContent = pointMode ? "地点追加中" : "地点追加";
       adminBtn.textContent = adminOpen ? "管理者設定中" : "管理者設定";
+      pointBtn.style.display = "none";
+      adminBtn.style.display = "none";
     }
 
     function buildFloorButtons() {
@@ -1533,10 +1712,6 @@
     function applyQuery() {
       const params = new URLSearchParams(window.location.search);
       isAdmin = params.get("admin") === "1";
-      if (isAdmin) {
-        adminBtn.style.display = "block";
-        pointBtn.style.display = "block";
-      }
 
       currentFloor = floorOrder()[0];
       const floor = params.get("floor");

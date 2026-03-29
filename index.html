@@ -1,1671 +1,496 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>フロアマップ</title>
-  
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #f3f4f6;
-      color: #222;
-    }
-
-    .app-header {
-      background: #fff;
-      text-align: center;
-      padding: 16px 12px 10px;
-      border-bottom: 1px solid #e5e7eb;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .app-header h1 {
-      margin: 0;
-      font-size: 26px;
-      font-weight: 700;
-    }
-
-    .status-bar {
-      margin-top: 8px;
-      font-size: 13px;
-      color: #666;
-      line-height: 1.6;
-      white-space: normal;
-    }
-
-    .app-shell {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 14px;
-    }
-
-    .map-card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 14px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-    }
-
-    #mapWrap {
-      position: relative;
-      width: 100%;
-      background: #fff;
-      border-radius: 18px;
-      overflow: hidden;
-      border: 1px solid #e5e7eb;
-      touch-action: none;
-    }
-
-    #mapTransform {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      transform-origin: center center;
-      will-change: transform;
-    }
-
-    #mapImage {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .floor-section {
-      margin-top: 16px;
-    }
-
-    .floor-tabs {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-    }
-
-    button {
-      border: none;
-      background: white;
-      border-radius: 14px;
-      padding: 10px 12px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .floor-tabs button {
-      height: 54px;
-      background: #d1d5db;
-      color: #111;
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    button.active-floor {
-      background: #ec4899;
-      color: white;
-    }
-
-    button.mode-on,
-    button.manual-on,
-    button.point-on {
-      background: #2563eb;
-      color: white;
-    }
-
-    .action-section {
-      margin-top: 16px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-
-    .action-section button {
-      min-height: 58px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    #pointBtn, #adminBtn {
-      display: none;
-    }
-
-    #accuracyCircle {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(25, 118, 210, 0.15);
-      border: 2px solid rgba(25, 118, 210, 0.35);
-      transform: translate(-50%, -50%);
-      left: 50%;
-      top: 50%;
-      z-index: 8;
-      pointer-events: none;
-      display: none;
-    }
-
-    #headingCone {
-      position: absolute;
-      width: 0;
-      height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-bottom: 20px solid rgba(30, 144, 255, 0.35);
-      transform-origin: 50% 85%;
-      left: 50%;
-      top: 50%;
-      margin-left: -8px;
-      margin-top: -17px;
-      z-index: 9;
-      pointer-events: none;
-      display: none;
-    }
-
-    #dot {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      background: red;
-      border: 1px solid white;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 0 2px rgba(255,0,0,0.2);
-      left: 50%;
-      top: 50%;
-      z-index: 10;
-      pointer-events: none;
-    }
-
-    #dot.animate {
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0%   { transform: translate(-50%, -50%) scale(1); }
-      50%  { transform: translate(-50%, -50%) scale(1.18); }
-      100% { transform: translate(-50%, -50%) scale(1); }
-    }
-
-    #label {
-      position: absolute;
-      transform: translate(-50%, calc(-100% - 10px));
-      background: rgba(0,0,0,0.55);
-      color: white;
-      font-size: 12px;
-      padding: 4px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-      left: 50%;
-      top: 50%;
-      z-index: 11;
-      pointer-events: none;
-      display: none;
-    }
-
-    #adminWrap {
-      max-width: 100%;
-      margin: 18px auto 0;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 18px;
-      padding: 16px;
-      display: none;
-    }
-
-    .slider-row {
-      margin-bottom: 14px;
-    }
-
-    .slider-row label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-
-    .slider-row input[type="range"] {
-      width: 100%;
-    }
-
-    #pointsList {
-      margin: 12px 0;
-      border-top: 1px solid #eee;
-      padding-top: 12px;
-    }
-
-    .point-row {
-      display: grid;
-      grid-template-columns: 70px 1fr 1fr 90px 90px auto auto;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .point-row input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 6px 8px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 13px;
-    }
-
-    .point-row button {
-      padding: 6px 10px;
-      font-size: 12px;
-      border: 1px solid #ccc;
-    }
-
-    #configOutput {
-      width: 100%;
-      min-height: 220px;
-      box-sizing: border-box;
-      font-family: monospace;
-      font-size: 13px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-
-    #qrTextOutput {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 13px;
-      margin-top: 8px;
-    }
-
-    .admin-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 12px 0;
-    }
-
-    .admin-actions button {
-      border: 1px solid #ccc;
-      background: white;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 14px;
-    }
-
-    #qrReaderWrap {
-      margin-top: 16px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 16px;
-      padding: 12px;
-      display: none;
-    }
-
-    #qr-reader {
-      width: 100%;
-    }
-
-    .admin-note {
-      margin: 10px 0;
-      font-size: 13px;
-      line-height: 1.7;
-      color: #555;
-    }
-
-    .point-badge {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      background: rgba(255,255,255,0.92);
-      border: 1px solid #666;
-      border-radius: 999px;
-      padding: 2px 6px;
-      font-size: 11px;
-      z-index: 7;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .view-reset-wrap {
-      margin-top: 12px;
-      text-align: right;
-    }
-
-    .view-reset-wrap button {
-      border: 1px solid #d1d5db;
-      background: #fff;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-      font-weight: 700;
-    }
-
-    
-    .tracking-section {
-      margin-top: 16px;
-      background: #fff;
-      border-radius: 16px;
-      padding: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-    }
-
-    .tracking-mode-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-    }
-
-    .tracking-mode-row button {
-      min-height: 46px;
-      background: #e5e7eb;
-      font-weight: 700;
-      font-size: 15px;
-    }
-
-    .tracking-mode-row button.mode-on {
-      background: #2563eb;
-      color: #fff;
-    }
-
-    .tracking-settings-row {
-      margin-top: 12px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .tracking-settings-row input {
-      width: 110px;
-      padding: 8px 10px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      font-size: 16px;
-    }
-
-    .tracking-info {
-      margin-top: 10px;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #555;
-      text-align: center;
-    }
-
-    @media (max-width: 640px) {
-      .floor-tabs {
-        gap: 8px;
-      }
-
-      .floor-tabs button {
-        height: 48px;
-        font-size: 18px;
-      }
-
-      .action-section {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .action-section button {
-        min-height: 54px;
-        font-size: 14px;
-        padding: 10px 8px;
-      }
-
-      .point-row {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デジタルフロアマップ</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #f7f7f7;
+            overflow: hidden;
+        }
+        #mapContainer {
+            position: relative;
+            flex-grow: 1;
+            background: #ddd;
+            overflow: hidden;
+        }
+        #floorPlan {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            touch-action: none; /* allow pinch/rotate gestures */
+        }
+        #marker {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: rgba(255,0,0,0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 5;
+        }
+        #floorBtnContainer {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 4px;
+            justify-content: center;
+            background: #fafafa;
+        }
+        #floorBtnContainer button {
+            margin: 2px;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            background: #e0e0e0;
+            cursor: pointer;
+        }
+        #floorBtnContainer button.active {
+            background: #ff9800;
+            color: white;
+        }
+        #controls {
+            background: #ffffff;
+            padding: 6px;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+        }
+        #controls .mode-switch,
+        #controls .action-buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+        #controls label {
+            margin: 0 8px;
+            font-size: 0.9rem;
+        }
+        #controls button {
+            margin: 2px;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+        }
+        #controls button:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        #settingsPanel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: none;
+        }
+        #settingsPanel h3 {
+            margin-top: 0;
+        }
+        #settingsPanel label {
+            display: block;
+            margin-bottom: 6px;
+        }
+        #settingsPanel input[type="number"],
+        #settingsPanel input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px;
+        }
+        #adminControls {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #eee;
+        }
+    </style>
 </head>
-
 <body>
-  <header class="app-header">
-    <h1 id="appTitle">フロアマップ</h1>
-    <div id="status" class="status-bar">状態: 初期表示</div>
-  </header>
 
-  <main class="app-shell">
-    <section class="map-card">
-      <div id="mapWrap">
-        <div id="mapTransform">
-          <img id="mapImage" src="" alt="フロアマップ">
-          <div id="accuracyCircle"></div>
-          <div id="headingCone"></div>
-          <div id="dot" class="animate"></div>
-          <div id="label">GPS現在地</div>
+    <div id="mapContainer">
+        <img id="floorPlan" src="" alt="Floor Plan">
+        <div id="marker"></div>
+    </div>
+    <div id="floorBtnContainer"></div>
+    <div id="controls">
+        <div class="mode-switch">
+            <label><input type="radio" id="modeGps" name="tracking" value="gps" checked>GPS追従</label>
+            <label><input type="radio" id="modeStep" name="tracking" value="step">歩数移動</label>
         </div>
-      </div>
-      <div class="view-reset-wrap">
-        <button type="button" onclick="resetViewTransform()">表示リセット</button>
-      </div>
-    </section>
-
-    <section class="floor-section">
-      <div class="floor-tabs" id="floorButtons"></div>
-    </section>
-
-    <section class="action-section">
-      <button id="gpsBtn" onclick="toggleGPS()">GPS追従</button>
-      <button id="manualBtn" onclick="toggleManualMode()">手動補正</button>
-      <button id="qrBtn" onclick="toggleQR()">QR補正</button>
-      <button id="pointBtn" onclick="togglePointMode()">地点追加</button>
-      <button id="adminBtn" onclick="toggleAdminPanel()">管理者設定</button>
-    </section>
-
-    <section class="tracking-section">
-      <div class="tracking-mode-row">
-        <button id="modeGpsBtn" type="button" onclick="setTrackingMode('gps')">GPS</button>
-        <button id="modeStepBtn" type="button" onclick="setTrackingMode('step')">歩数</button>
-        <button id="modeAutoBtn" type="button" onclick="setTrackingMode('auto')">自動</button>
-        <button id="modeStopBtn" type="button" onclick="setTrackingMode('off')">停止</button>
-      </div>
-
-      <div class="tracking-settings-row">
-        <label for="stepLengthInput">1歩(m)</label>
-        <input id="stepLengthInput" type="number" min="0.30" max="1.20" step="0.01" value="0.70">
-      </div>
-
-      <div id="trackingInfo" class="tracking-info">追従モード: 停止</div>
-    </section>
-
-    <div id="qrReaderWrap">
-      <div id="qr-reader"></div>
+        <div class="action-buttons">
+            <button id="manualBtn" title="地図上でタップして手動補正">手動補正</button>
+            <button id="qrBtn" title="QRコードで補正">QR補正</button>
+            <button id="resetBtn" title="現在地をリセット">リセット</button>
+            <button id="settingsBtn" title="設定と管理者モード">設定⚙️</button>
+        </div>
     </div>
 
-    <div id="adminWrap">
-      <h3 style="margin-top:0;">管理者設定</h3>
-      <div style="margin-bottom:12px;">現在フロア: <strong id="adminCurrentFloor">1F</strong></div>
-
-      <div class="slider-row">
-        <label>画像横幅（m）: <span id="widthMetersValue"></span></label>
-        <input id="widthMetersRange" type="range" min="5" max="300" step="0.5">
-      </div>
-
-      <div class="slider-row">
-        <label>画像縦幅（m）: <span id="heightMetersValue"></span></label>
-        <input id="heightMetersRange" type="range" min="5" max="300" step="0.5">
-      </div>
-
-      <div class="slider-row">
-        <label>地図の北方向（度）: <span id="mapNorthDegValue"></span></label>
-        <input id="mapNorthDegRange" type="range" min="-180" max="180" step="1">
-      </div>
-
-      <div class="admin-actions">
-        <button onclick="saveFloorMeta()">このフロア設定を保存</button>
-        <button onclick="clearCurrentFloorPoints()">このフロアの地点を削除</button>
-        <button onclick="exportConfigToTextarea()">config.jsonを書き出し</button>
-        <button onclick="copyConfigText()">JSONをコピー</button>
-      </div>
-
-      <div id="pointsList"></div>
-
-      <div class="admin-note">
-        管理者モードでは、<br>
-        ・手動補正 = 現在地補正のみ<br>
-        ・地点追加 = 新しい地点を登録<br>
-        に分かれています。<br>
-        地点はドラッグ移動・名前変更・メモ編集・QR文字列生成ができます。
-      </div>
-
-      <textarea id="configOutput"></textarea>
-      <input id="qrTextOutput" readonly placeholder="選択した地点のQR文字列が表示されます">
+    <div id="settingsPanel">
+        <h3>設定・管理者モード</h3>
+        <label><input type="checkbox" id="adminModeCheckbox"> 管理者モードを有効にする</label>
+        <div id="adminControls" style="display:none;">
+            <h4>アンカー編集</h4>
+            <label>基準地点の緯度: <input type="number" step="0.000001" id="latInput"></label>
+            <label>基準地点の経度: <input type="number" step="0.000001" id="lngInput"></label>
+            <label>基準地点の方角(°): <input type="number" step="0.1" id="rotationInput"></label>
+            <button id="updateAnchorBtn">基準地点を更新</button>
+            <button id="saveDataBtn">JSON保存</button>
+        </div>
+        <h4>歩数・GPS設定</h4>
+        <label>歩幅 (m): <input type="number" step="0.01" id="stepLengthInput" value="0.7"></label>
+        <label>GPS精度しきい値 (m): <input type="number" step="1" id="accuracyThresholdInput" value="5"></label>
+        <button id="closeSettingsBtn" style="margin-top:12px;">閉じる</button>
     </div>
-  </main>
 
-
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script>
-    const mapWrap = document.getElementById("mapWrap");
-    const mapImage = document.getElementById("mapImage");
-    const mapTransform = document.getElementById("mapTransform");
-    const dot = document.getElementById("dot");
-    const label = document.getElementById("label");
-    const accuracyCircle = document.getElementById("accuracyCircle");
-    const headingCone = document.getElementById("headingCone");
-    const statusEl = document.getElementById("status");
-    const qrReaderWrap = document.getElementById("qrReaderWrap");
-    const floorButtonsEl = document.getElementById("floorButtons");
-    const adminWrap = document.getElementById("adminWrap");
-    const appTitleEl = document.getElementById("appTitle");
-
-    const gpsBtn = document.getElementById("gpsBtn");
-    const qrBtn = document.getElementById("qrBtn");
-    const manualBtn = document.getElementById("manualBtn");
-    const pointBtn = document.getElementById("pointBtn");
-    const adminBtn = document.getElementById("adminBtn");
-
-    const adminCurrentFloor = document.getElementById("adminCurrentFloor");
-    const widthMetersRange = document.getElementById("widthMetersRange");
-    const heightMetersRange = document.getElementById("heightMetersRange");
-    const mapNorthDegRange = document.getElementById("mapNorthDegRange");
-    const widthMetersValue = document.getElementById("widthMetersValue");
-    const heightMetersValue = document.getElementById("heightMetersValue");
-    const mapNorthDegValue = document.getElementById("mapNorthDegValue");
-    const configOutput = document.getElementById("configOutput");
-    const pointsList = document.getElementById("pointsList");
-    const qrTextOutput = document.getElementById("qrTextOutput");
-    const trackingInfoEl = document.getElementById("trackingInfo");
-    const stepLengthInput = document.getElementById("stepLengthInput");
-
-    let config = null;
-    let currentFloor = null;
-    let watchId = null;
-    let qrScanner = null;
-
-    let gpsEnabled = false;
-    let qrEnabled = false;
-    let manualMode = false;
-    let pointMode = false;
-    let adminOpen = false;
-    let headingEnabled = false;
-    let isAdmin = false;
-
-    let headingDeg = null;
-    let lastAccuracyMeters = 0;
-    let ignoreGpsUntil = 0;
-
-    let currentPosition = {
-      floor: null,
-      nx: 0.5,
-      ny: 0.5,
-      label: "現在地"
-    };
-
-    let anchor = {
-      enabled: false,
-      floor: null,
-      baseLat: null,
-      baseLon: null,
-      baseNx: 0.5,
-      baseNy: 0.5,
-      label: ""
-    };
-
-    let draggingPointId = null;
-    let viewScale = 1;
-    let viewRotation = 0;
-    let viewTranslateX = 0;
-    let viewTranslateY = 0;
-
-    let gestureStartDistance = 0;
-    let gestureStartAngle = 0;
-    let gestureStartScale = 1;
-    let gestureStartRotation = 0;
-    let gestureStartTranslateX = 0;
-    let gestureStartTranslateY = 0;
-    let gestureStartCenterX = 0;
-    let gestureStartCenterY = 0;
-
-    let singleTouchDragging = false;
-    let singleTouchStartX = 0;
-    let singleTouchStartY = 0;
-
-    let trackingMode = "off";
-    let activeTrackingSource = "off";
-    let stepLengthMeters = 0.70;
-    let stepCount = 0;
-
-    let motionEnabled = false;
-    let stepDetectionEnabled = false;
-    let lastAccelMag = null;
-    let smoothedAccelMag = null;
-    let lastStepTimestamp = 0;
-    let risingEdgeArmed = false;
-
-    const GPS_GOOD_ACCURACY = 4;
-    const GPS_BAD_ACCURACY = 6;
-
-    
-    function applyMapTransform() {
-      mapTransform.style.transform =
-        `translate(${viewTranslateX}px, ${viewTranslateY}px) rotate(${viewRotation}deg) scale(${viewScale})`;
-    }
-
-    function getTouchDistance(t1, t2) {
-      const dx = t2.clientX - t1.clientX;
-      const dy = t2.clientY - t1.clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    function getTouchAngle(t1, t2) {
-      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
-    }
-
-    function getTouchCenter(t1, t2) {
-      return {
-        x: (t1.clientX + t2.clientX) / 2,
-        y: (t1.clientY + t2.clientY) / 2
-      };
-    }
-
-    function resetViewTransform() {
-      viewScale = 1;
-      viewRotation = 0;
-      viewTranslateX = 0;
-      viewTranslateY = 0;
-      applyMapTransform();
-    }
-
-    function updateStatus(html) {
-      statusEl.innerHTML = html;
-    }
-
-    function resolveTrackingSource() {
-      if (trackingMode === "gps") return "gps";
-      if (trackingMode === "step") return "step";
-      if (trackingMode === "off") return "off";
-
-      if (activeTrackingSource === "gps") {
-        if (lastAccuracyMeters > GPS_BAD_ACCURACY) return "step";
-        return "gps";
-      }
-
-      if (activeTrackingSource === "step") {
-        if (lastAccuracyMeters > 0 && lastAccuracyMeters <= GPS_GOOD_ACCURACY) return "gps";
-        return "step";
-      }
-
-      if (lastAccuracyMeters > 0 && lastAccuracyMeters <= GPS_GOOD_ACCURACY) return "gps";
-      return "step";
-    }
-
-    function updateTrackingButtons() {
-      const map = {
-        gps: "modeGpsBtn",
-        step: "modeStepBtn",
-        auto: "modeAutoBtn",
-        off: "modeStopBtn"
-      };
-
-      Object.entries(map).forEach(([mode, id]) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.classList.toggle("mode-on", trackingMode === mode);
-      });
-    }
-
-    function updateTrackingInfo() {
-      if (!trackingInfoEl) return;
-
-      const sourceText =
-        activeTrackingSource === "gps" ? "GPS" :
-        activeTrackingSource === "step" ? "歩数" : "停止";
-
-      const modeText =
-        trackingMode === "gps" ? "GPS" :
-        trackingMode === "step" ? "歩数" :
-        trackingMode === "auto" ? "自動" : "停止";
-
-      trackingInfoEl.innerHTML =
-        `追従モード: ${modeText}<br>` +
-        `現在の使用: ${sourceText}<br>` +
-        `GPS精度: ${lastAccuracyMeters ? `約${Math.round(lastAccuracyMeters)}m` : "未取得"}<br>` +
-        `歩数: ${stepCount}<br>` +
-        `歩幅: ${stepLengthMeters.toFixed(2)}m`;
-    }
-
-    async function ensureMotionPermission() {
-      if (
-        typeof DeviceMotionEvent !== "undefined" &&
-        typeof DeviceMotionEvent.requestPermission === "function"
-      ) {
-        try {
-          const permission = await DeviceMotionEvent.requestPermission();
-          return permission === "granted";
-        } catch (e) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    async function setTrackingMode(mode) {
-      trackingMode = mode;
-      stepLengthMeters = Number(stepLengthInput?.value || 0.70);
-
-      if (!headingEnabled) {
-        await startHeading();
-      }
-
-      if (!motionEnabled) {
-        const granted = await ensureMotionPermission();
-        if (granted) {
-          window.addEventListener("devicemotion", handleMotion, true);
-          motionEnabled = true;
-        }
-      }
-
-      activeTrackingSource = resolveTrackingSource();
-      stepDetectionEnabled = gpsEnabled && (activeTrackingSource === "step");
-
-      updateTrackingButtons();
-      updateTrackingInfo();
-    }
-
-    function resetStepTracking() {
-      stepCount = 0;
-      lastAccelMag = null;
-      smoothedAccelMag = null;
-      lastStepTimestamp = 0;
-      risingEdgeArmed = false;
-      updateTrackingInfo();
-    }
-
-    function moveByStep(stepMeters) {
-      if (!currentFloor || headingDeg == null) return;
-
-      const meta = getFloorConfig(currentFloor);
-      const theta = (headingDeg - (meta.mapNorthDeg || 0)) * Math.PI / 180;
-
-      const dxMapMeters = stepMeters * Math.sin(theta);
-      const dyMapMeters = -stepMeters * Math.cos(theta);
-
-      const dnX = dxMapMeters / meta.widthMeters;
-      const dnY = dyMapMeters / meta.heightMeters;
-
-      currentPosition.nx = Math.max(0, Math.min(1, currentPosition.nx + dnX));
-      currentPosition.ny = Math.max(0, Math.min(1, currentPosition.ny + dnY));
-      currentPosition.label = "歩数現在地";
-
-      renderPosition();
-      updateTrackingInfo();
-    }
-
-    function handleMotion(event) {
-      if (!stepDetectionEnabled) return;
-      if (activeTrackingSource !== "step") return;
-
-      const acc = event.accelerationIncludingGravity;
-      if (!acc) return;
-
-      const mag = Math.sqrt(
-        (acc.x || 0) * (acc.x || 0) +
-        (acc.y || 0) * (acc.y || 0) +
-        (acc.z || 0) * (acc.z || 0)
-      );
-
-      if (smoothedAccelMag == null) {
-        smoothedAccelMag = mag;
-        lastAccelMag = 0;
-        return;
-      }
-
-      // 平滑化して、手持ち歩行でも拾いやすくする
-      smoothedAccelMag = smoothedAccelMag * 0.82 + mag * 0.18;
-
-      // 重力込み加速度の基準からのズレを使う
-      const dynamic = mag - smoothedAccelMag;
-      lastAccelMag = dynamic;
-
-      const now = Date.now();
-      const STEP_UP_THRESHOLD = 0.75;
-      const STEP_DOWN_THRESHOLD = -0.55;
-      const STEP_MIN_INTERVAL = 320;
-      const STEP_MAX_INTERVAL = 1200;
-
-      if (!risingEdgeArmed && dynamic > STEP_UP_THRESHOLD) {
-        risingEdgeArmed = true;
-      }
-
-      if (risingEdgeArmed && dynamic < STEP_DOWN_THRESHOLD) {
-        const dt = now - lastStepTimestamp;
-        if (dt > STEP_MIN_INTERVAL && dt < STEP_MAX_INTERVAL) {
-          lastStepTimestamp = now;
-          stepCount += 1;
-          moveByStep(stepLengthMeters);
-        }
-        risingEdgeArmed = false;
-      }
-
-      // 長く反応がないときは判定状態を戻す
-      if (now - lastStepTimestamp > 1500 && dynamic < 0.2) {
-        risingEdgeArmed = false;
-      }
-    }
-
-    function floorOrder() {
-      return Object.keys(config.floors);
-    }
-
-    function resetAnchor() {
-      anchor.enabled = false;
-      anchor.floor = null;
-      anchor.baseLat = null;
-      anchor.baseLon = null;
-      anchor.baseNx = 0.5;
-      anchor.baseNy = 0.5;
-      anchor.label = "";
-    }
-
-    function updateModeButtons() {
-      gpsBtn.classList.toggle("mode-on", gpsEnabled);
-      qrBtn.classList.toggle("mode-on", qrEnabled);
-      manualBtn.classList.toggle("manual-on", manualMode);
-      pointBtn.classList.toggle("point-on", pointMode);
-      adminBtn.classList.toggle("mode-on", adminOpen);
-
-      gpsBtn.textContent = gpsEnabled ? "GPS追従中" : "GPS追従";
-      qrBtn.textContent = qrEnabled ? "QR読取中" : "QR補正";
-      manualBtn.textContent = manualMode ? "手動補正中" : "手動補正";
-      pointBtn.textContent = pointMode ? "地点追加中" : "地点追加";
-      adminBtn.textContent = adminOpen ? "管理者設定中" : "管理者設定";
-    }
-
-    function buildFloorButtons() {
-      floorButtonsEl.innerHTML = "";
-      floorOrder().forEach(floor => {
-        const btn = document.createElement("button");
-        btn.id = "btn" + floor;
-        btn.type = "button";
-        btn.textContent = floor;
-        btn.onclick = () => switchFloor(floor);
-        floorButtonsEl.appendChild(btn);
-      });
-      updateFloorButtons();
-    }
-
-    function updateFloorButtons() {
-      floorOrder().forEach(floor => {
-        const btn = document.getElementById("btn" + floor);
-        if (btn) btn.classList.toggle("active-floor", currentFloor === floor);
-      });
-    }
-
-    function getFloorConfig(floor) {
-      return config.floors[floor];
-    }
-
-    function setMapImageForFloor(floor) {
-      mapImage.src = getFloorConfig(floor).image;
-    }
-
-    function updateAdminFields() {
-      if (!config || !currentFloor) return;
-      const f = getFloorConfig(currentFloor);
-      adminCurrentFloor.textContent = currentFloor;
-      widthMetersRange.value = f.widthMeters;
-      heightMetersRange.value = f.heightMeters;
-      mapNorthDegRange.value = f.mapNorthDeg;
-      widthMetersValue.textContent = f.widthMeters;
-      heightMetersValue.textContent = f.heightMeters;
-      mapNorthDegValue.textContent = f.mapNorthDeg;
-      renderPointsList();
-    }
-
-    function renderPoints() {
-      document.querySelectorAll(".point-badge").forEach(el => el.remove());
-      if (!isAdmin) return;
-
-      const points = getFloorConfig(currentFloor).points || [];
-      points.forEach(p => {
-        const el = document.createElement("div");
-        el.className = "point-badge";
-        el.textContent = p.label;
-        el.dataset.pointId = p.id;
-        el.style.left = `${p.nx * mapImage.clientWidth}px`;
-        el.style.top = `${p.ny * mapImage.clientHeight}px`;
-
-        el.addEventListener("pointerdown", (e) => {
-          draggingPointId = p.id;
-          e.stopPropagation();
-        });
-
-        el.addEventListener("click", (e) => {
-          e.stopPropagation();
-          generateQrText(p.id);
-        });
-
-        mapWrap.appendChild(el);
-      });
-    }
-
-    function renderPointsList() {
-      if (!isAdmin) {
-        pointsList.innerHTML = "";
-        return;
-      }
-
-      const points = getFloorConfig(currentFloor).points || [];
-      pointsList.innerHTML = "<h4>地点一覧</h4>";
-
-      points.forEach((p) => {
-        const row = document.createElement("div");
-        row.className = "point-row";
-        row.innerHTML = `
-          <div>${p.id}</div>
-          <input value="${p.label}" data-type="label" data-id="${p.id}" placeholder="地点名">
-          <input value="${p.note || ""}" data-type="note" data-id="${p.id}" placeholder="メモ">
-          <input value="${p.nx}" data-type="nx" data-id="${p.id}">
-          <input value="${p.ny}" data-type="ny" data-id="${p.id}">
-          <button data-type="qr" data-id="${p.id}">QR</button>
-          <button data-type="delete" data-id="${p.id}">削除</button>
-        `;
-        pointsList.appendChild(row);
-      });
-
-      pointsList.querySelectorAll("input").forEach(input => {
-        input.addEventListener("change", (e) => {
-          const id = e.target.dataset.id;
-          const type = e.target.dataset.type;
-          const p = getFloorConfig(currentFloor).points.find(x => x.id === id);
-          if (!p) return;
-
-          if (type === "label") p.label = e.target.value;
-          if (type === "note") p.note = e.target.value;
-          if (type === "nx") p.nx = Number(e.target.value);
-          if (type === "ny") p.ny = Number(e.target.value);
-
-          renderPoints();
-          exportConfigToTextarea();
-        });
-      });
-
-      pointsList.querySelectorAll("button").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-          const id = e.target.dataset.id;
-          const type = e.target.dataset.type;
-
-          if (type === "qr") {
-            generateQrText(id);
-            return;
-          }
-
-          if (type === "delete") {
-            getFloorConfig(currentFloor).points =
-              getFloorConfig(currentFloor).points.filter(p => p.id !== id);
-            renderPoints();
-            renderPointsList();
-            exportConfigToTextarea();
-          }
-        });
-      });
-    }
-
-    function renderAccuracyCircle() {
-      const x = currentPosition.nx * mapImage.clientWidth;
-      const y = currentPosition.ny * mapImage.clientHeight;
-      accuracyCircle.style.left = x + "px";
-      accuracyCircle.style.top = y + "px";
-
-      const circlePx = Math.max(10, Math.min(80, lastAccuracyMeters * 0.8));
-      accuracyCircle.style.width = circlePx + "px";
-      accuracyCircle.style.height = circlePx + "px";
-      accuracyCircle.style.display = gpsEnabled ? "block" : "none";
-    }
-
-    function renderHeading() {
-      const x = currentPosition.nx * mapImage.clientWidth;
-      const y = currentPosition.ny * mapImage.clientHeight;
-      headingCone.style.left = x + "px";
-      headingCone.style.top = y + "px";
-
-      if (headingDeg == null) {
-        headingCone.style.display = "none";
-        return;
-      }
-
-      const displayHeading = headingDeg - getFloorConfig(currentFloor).mapNorthDeg;
-      headingCone.style.display = "block";
-      headingCone.style.transform = `rotate(${displayHeading}deg)`;
-    }
-
-    function renderPosition() {
-      const x = currentPosition.nx * mapImage.clientWidth;
-      const y = currentPosition.ny * mapImage.clientHeight;
-
-      dot.style.left = x + "px";
-      dot.style.top = y + "px";
-
-      const scale = mapImage.clientWidth / mapImage.naturalWidth;
-      dot.style.transform = `translate(-50%, -50%) scale(${1 / scale})`;
-
-      label.style.left = x + "px";
-      label.style.top = y + "px";
-
-      renderAccuracyCircle();
-      renderHeading();
-      renderPoints();
-    }
-
-    function setNormalizedPosition(floor, nx, ny, text = "現在地") {
-      currentFloor = floor;
-      currentPosition = {
-        floor,
-        nx: Math.max(0, Math.min(1, Number(nx))),
-        ny: Math.max(0, Math.min(1, Number(ny))),
-        label: text
-      };
-      updateFloorButtons();
-      updateAdminFields();
-      renderPosition();
-    }
-
-    async function stopQrScanInternal() {
-      try {
-        if (qrScanner && qrScanner.isScanning) {
-          await qrScanner.stop();
-          await qrScanner.clear();
-          qrScanner = null;
-        }
-      } catch (e) {}
-      qrReaderWrap.style.display = "none";
-      qrEnabled = false;
-      updateModeButtons();
-      updateStatus("状態: QR停止");
-    }
-
-    function switchFloor(floor) {
-      if (qrEnabled) {
-    stopQrScanInternal();
-  }
-
-  manualMode = false;
-  pointMode = false;
- 
-  currentFloor = floor;
-  currentPosition = {
-    floor: floor,
-    nx: currentPosition.nx,
-    ny: currentPosition.ny,
-    label: currentPosition.label || "現在地"
-  };
-
-  updateFloorButtons();
-  updateAdminFields();
-  updateModeButtons();
-
-  setMapImageForFloor(floor);
-
-  mapImage.onload = () => {
-    renderPosition();
-    updateStatus(`状態: ${floor}を表示中`);
-  };
-}
-    function saveFloorMeta() {
-      const f = getFloorConfig(currentFloor);
-      f.widthMeters = Number(widthMetersRange.value);
-      f.heightMeters = Number(heightMetersRange.value);
-      f.mapNorthDeg = Number(mapNorthDegRange.value);
-      updateAdminFields();
-      renderPosition();
-      exportConfigToTextarea();
-      updateStatus(`状態: ${currentFloor} の設定を保存しました`);
-    }
-
-    function clearCurrentFloorPoints() {
-      getFloorConfig(currentFloor).points = [];
-      renderPoints();
-      renderPointsList();
-      exportConfigToTextarea();
-      updateStatus(`状態: ${currentFloor} の地点を削除しました`);
-    }
-
-    function exportConfigToTextarea() {
-      configOutput.value = JSON.stringify(config, null, 2);
-    }
-
-    async function copyConfigText() {
-      exportConfigToTextarea();
-      try {
-        await navigator.clipboard.writeText(configOutput.value);
-        updateStatus("状態: config.json をコピーしました");
-      } catch (e) {
-        updateStatus("状態: コピーに失敗しました");
-      }
-    }
-
-    function addPointForAdmin(nx, ny) {
-      if (!isAdmin) return;
-      const points = getFloorConfig(currentFloor).points || [];
-      const id = "P" + String(points.length + 1).padStart(2, "0");
-      points.push({
-        id,
-        label: `地点${points.length + 1}`,
-        note: "",
-        nx: Number(nx.toFixed(6)),
-        ny: Number(ny.toFixed(6))
-      });
-      getFloorConfig(currentFloor).points = points;
-      renderPoints();
-      renderPointsList();
-      exportConfigToTextarea();
-    }
-
-    function generateQrText(pointId) {
-      qrTextOutput.value = `floor=${currentFloor}&point=${pointId}`;
-    }
-
-    function enableAnchor(nx, ny, labelText, lat, lon) {
-      anchor.enabled = true;
-      anchor.floor = currentFloor;
-      anchor.baseNx = Number(nx);
-      anchor.baseNy = Number(ny);
-      anchor.baseLat = lat;
-      anchor.baseLon = lon;
-      anchor.label = labelText;
-
-      setNormalizedPosition(currentFloor, nx, ny, labelText);
-      resetStepTracking();
-    }
-
-    function toggleManualMode() {
-      manualMode = !manualMode;
-      if (manualMode) pointMode = false;
-      updateModeButtons();
-      updateStatus(manualMode ? "状態: 手動補正モードON" : "状態: 手動補正モードOFF");
-    }
-
-    function togglePointMode() {
-      if (!isAdmin) return;
-      pointMode = !pointMode;
-      if (pointMode) manualMode = false;
-      updateModeButtons();
-      updateStatus(pointMode ? "状態: 地点追加モードON" : "状態: 地点追加モードOFF");
-    }
-
-    mapWrap.addEventListener("click", async (event) => {
-      if ((!manualMode && !pointMode) || draggingPointId) return;
-
-      const rect = mapImage.getBoundingClientRect();
-      const nx = (event.clientX - rect.left) / rect.width;
-      const ny = (event.clientY - rect.top) / rect.height;
-
-      if (pointMode) {
-        addPointForAdmin(nx, ny);
-        updateStatus(`状態: 地点を追加しました<br>nx=${nx.toFixed(6)}, ny=${ny.toFixed(6)}`);
-        return;
-      }
-
-      if (manualMode) {
-        try {
-          const pos = await getOnePosition();
-          enableAnchor(nx, ny, "手動補正位置", pos.coords.latitude, pos.coords.longitude);
-          ignoreGpsUntil = Date.now() + 3000;
-          lastAccuracyMeters = pos.coords.accuracy || 0;
-
-          updateStatus(
-            `状態: 手動補正完了<br>` +
-            `階: ${currentFloor}<br>` +
-            `基準GPS: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}<br>` +
-            `基準位置: nx=${nx.toFixed(6)}, ny=${ny.toFixed(6)}`
-          );
-        } catch (e) {
-          setNormalizedPosition(currentFloor, nx, ny, "手動補正位置");
-          updateStatus("状態: 手動補正完了（GPS取得なし）");
-        }
-      }
-    });
-
-    mapWrap.addEventListener("pointermove", (event) => {
-      if (!isAdmin || !draggingPointId) return;
-
-      const rect = mapImage.getBoundingClientRect();
-      const nx = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-      const ny = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-
-      const p = getFloorConfig(currentFloor).points.find(x => x.id === draggingPointId);
-      if (!p) return;
-
-      p.nx = Number(nx.toFixed(6));
-      p.ny = Number(ny.toFixed(6));
-
-      renderPoints();
-      renderPointsList();
-      exportConfigToTextarea();
-    });
-
-    window.addEventListener("pointerup", () => {
-      draggingPointId = null;
-    });
-
-    function toggleGPS() {
-      if (gpsEnabled) {
-        stopGPSInternal();
-      } else {
-        startGPSInternal();
-      }
-      updateModeButtons();
-    }
-
-    function stopGPSInternal() {
-      gpsEnabled = false;
-
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-      }
-
-      accuracyCircle.style.display = "none";
-      activeTrackingSource = "off";
-      stepDetectionEnabled = false;
-
-      updateModeButtons();
-      updateTrackingInfo();
-      updateStatus("状態: GPS追従停止");
-    }
-
-    async function startHeading() {
-      if (
-        typeof DeviceOrientationEvent !== "undefined" &&
-        typeof DeviceOrientationEvent.requestPermission === "function"
-      ) {
-        try {
-          const permission = await DeviceOrientationEvent.requestPermission();
-          if (permission !== "granted") return;
-        } catch (e) {
-          return;
-        }
-      }
-      window.addEventListener("deviceorientation", handleOrientation, true);
-      headingEnabled = true;
-    }
-
-    function handleOrientation(event) {
-      let raw = null;
-      if (typeof event.webkitCompassHeading === "number") {
-        raw = event.webkitCompassHeading;
-      } else if (event.alpha != null) {
-        raw = 360 - event.alpha;
-      }
-      if (raw == null) return;
-
-      if (headingDeg == null) headingDeg = raw;
-      const delta = ((((raw - headingDeg) % 360) + 540) % 360) - 180;
-      headingDeg = (headingDeg + delta * 0.25 + 360) % 360;
-
-      renderHeading();
-    }
-
-    function startGPSInternal() {
-      if (!navigator.geolocation) {
-        updateStatus("状態: この端末では位置情報が使えません");
-        return;
-      }
-
-      if (!headingEnabled) startHeading();
-
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-      }
-
-      gpsEnabled = true;
-      activeTrackingSource = resolveTrackingSource();
-      stepDetectionEnabled = (activeTrackingSource === "step");
-      updateModeButtons();
-      updateTrackingInfo();
-      updateStatus("状態: GPS追従開始");
-
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          if (!gpsEnabled) return;
-          if (Date.now() < ignoreGpsUntil) return;
-
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          const acc = pos.coords.accuracy;
-          lastAccuracyMeters = acc || 0;
-
-          activeTrackingSource = resolveTrackingSource();
-          stepDetectionEnabled = (activeTrackingSource === "step");
-
-          if (!anchor.enabled || anchor.baseLat == null || anchor.baseLon == null) {
-            updateStatus("状態: まずQR補正または手動補正で現在地を置いてください");
-            renderPosition();
-            updateTrackingInfo();
-            return;
-          }
-
-          if (activeTrackingSource !== "gps") {
-            updateStatus(
-              `状態: 歩数追従中<br>` +
-              `階: ${currentFloor}<br>` +
-              `GPS精度: 約${Math.round(acc)}m<br>` +
-              `nx=${currentPosition.nx.toFixed(6)}, ny=${currentPosition.ny.toFixed(6)}`
-            );
-            updateTrackingInfo();
-            return;
-          }
-
-          const metersPerDegLat = 111320;
-          const meanLatRad = ((anchor.baseLat + lat) / 2) * Math.PI / 180;
-          const metersPerDegLon = 111320 * Math.cos(meanLatRad);
-
-          const eastMeters = (lon - anchor.baseLon) * metersPerDegLon;
-          const northMeters = (lat - anchor.baseLat) * metersPerDegLat;
-
-          const meta = getFloorConfig(anchor.floor);
-          const theta = (meta.mapNorthDeg || 0) * Math.PI / 180;
-
-          const dxMapMeters = eastMeters * Math.cos(theta) - northMeters * Math.sin(theta);
-          const dyMapMeters = -(eastMeters * Math.sin(theta) + northMeters * Math.cos(theta));
-
-          const rawNx = anchor.baseNx + dxMapMeters / meta.widthMeters;
-          const rawNy = anchor.baseNy + dyMapMeters / meta.heightMeters;
-
-          const targetNx = Math.max(0, Math.min(1, rawNx));
-          const targetNy = Math.max(0, Math.min(1, rawNy));
-
-          const alpha = 0.20;
-          currentPosition = {
-            floor: currentFloor,
-            nx: currentPosition.nx + (targetNx - currentPosition.nx) * alpha,
-            ny: currentPosition.ny + (targetNy - currentPosition.ny) * alpha,
-            label: "GPS現在地"
-          };
-
-          renderPosition();
-
-          updateStatus(
-            `状態: GPS追従中<br>` +
-            `階: ${currentFloor}<br>` +
-            `現在GPS: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>` +
-            `精度: 約${Math.round(acc)}m<br>` +
-            `nx=${currentPosition.nx.toFixed(6)}, ny=${currentPosition.ny.toFixed(6)}`
-          );
-
-          updateTrackingInfo();
-        },
-        () => {
-          updateStatus("状態: GPS取得失敗");
-          updateTrackingInfo();
+    <script>
+    // Data: specify floor plans and anchors
+    const floorPlans = [
+        {
+            name: "1F",
+            image: "data:image/png;base64,"
+            + "iVBORw0KGgoAAAANSUhEUgAAAoAAAAHgCAIAAAAP5A...", // placeholder
+            // anchor lat/lng for top-left and bottom-right corners. Replace with real values.
+            anchor: {
+                lat1: 35.909210,
+                lng1: 139.485360,
+                lat2: 35.909000,
+                lng2: 139.485800
+            }
         },
         {
-          enableHighAccuracy: true,
-          timeout: 30000,
-          maximumAge: 1000
+            name: "2F",
+            image: "data:image/png;base64,"
+            + "iVBORw0KGgoAAAANSUhEUgAAAoAAAAHgCAIAAAAP5A...", // placeholder
+            anchor: {
+                lat1: 35.909210,
+                lng1: 139.485360,
+                lat2: 35.909000,
+                lng2: 139.485800
+            }
         }
-      );
-    }
+    ];
 
-    function getNextFloor(current) {
-      const floors = floorOrder();
-      const idx = floors.indexOf(current);
-      return idx >= 0 && idx < floors.length - 1 ? floors[idx + 1] : current;
-    }
+    // State
+    let currentFloorIndex = 0;
+    let markerPos = { x: 0, y: 0 };
+    let trackingMode = 'gps';
+    let stepLength = parseFloat(document.getElementById('stepLengthInput').value) || 0.7;
+    let accuracyThreshold = parseFloat(document.getElementById('accuracyThresholdInput').value) || 5;
+    let gpsWatchId = null;
+    let stepListening = false;
+    let stepCount = 0;
+    let lastStepTime = 0;
+    let orientation = 0; // degrees (0 = north)
 
-    function getPrevFloor(current) {
-      const floors = floorOrder();
-      const idx = floors.indexOf(current);
-      return idx > 0 ? floors[idx - 1] : current;
-    }
+    const mapContainer = document.getElementById('mapContainer');
+    const floorPlanImg = document.getElementById('floorPlan');
+    const marker = document.getElementById('marker');
+    const floorBtnContainer = document.getElementById('floorBtnContainer');
 
-    function findPoint(floor, pointId) {
-      const points = getFloorConfig(floor).points || [];
-      return points.find(p => p.id === pointId) || null;
-    }
-
-    async function applyQrAnchor(floor, nx, ny, text = "QR補正位置") {
-      currentFloor = floor;
-
-      try {
-        const pos = await getOnePosition();
-        setMapImageForFloor(currentFloor);
-        updateFloorButtons();
-        updateAdminFields();
-
-        mapImage.onload = () => {
-          enableAnchor(nx, ny, text, pos.coords.latitude, pos.coords.longitude);
-          ignoreGpsUntil = Date.now() + 3000;
-          lastAccuracyMeters = pos.coords.accuracy || 0;
-          updateStatus(`状態: QR補正完了`);
-        };
-      } catch (e) {
-        setNormalizedPosition(currentFloor, nx, ny, text);
-        updateStatus("状態: QR補正完了（GPS取得なし）");
-      }
-    }
-
-    async function applyStairsMode(mode, pointId, nx, ny, text = "階段") {
-      let nextFloor = currentFloor;
-      if (mode === "stairs-up") nextFloor = getNextFloor(currentFloor);
-      if (mode === "stairs-down") nextFloor = getPrevFloor(currentFloor);
-
-      if (pointId) {
-        const p = findPoint(nextFloor, pointId);
-        if (p) {
-          await applyQrAnchor(nextFloor, p.nx, p.ny, p.label);
-          return;
-        }
-      }
-
-      await applyQrAnchor(nextFloor, nx, ny, text);
-    }
-
-    function parseQrText(decodedText) {
-      try {
-        let params;
-        if (decodedText.startsWith("http://") || decodedText.startsWith("https://")) {
-          params = new URL(decodedText).searchParams;
-        } else {
-          params = new URLSearchParams(decodedText);
-        }
-
-        const mode = params.get("mode");
-        const floor = params.get("floor") || currentFloor;
-        const pointId = params.get("point");
-        const nx = params.get("nx");
-        const ny = params.get("ny");
-        const text = params.get("label") || "QR補正位置";
-
-        if (mode === "stairs-up" || mode === "stairs-down") {
-          applyStairsMode(mode, pointId, nx ? Number(nx) : 0.5, ny ? Number(ny) : 0.5, text);
-          return;
-        }
-
-        if (pointId) {
-          const p = findPoint(floor, pointId);
-          if (p) {
-            applyQrAnchor(floor, p.nx, p.ny, p.label);
-            return;
-          }
-        }
-
-        if (nx !== null && ny !== null) {
-          applyQrAnchor(floor, Number(nx), Number(ny), text);
-          return;
-        }
-
-        updateStatus("状態: QRの形式が正しくありません");
-      } catch (e) {
-        updateStatus("状態: QRの解析に失敗しました");
-      }
-    }
-
-    async function toggleQR() {
-      if (qrEnabled) {
-        await stopQrScanInternal();
-      } else {
-        await startQrScanInternal();
-      }
-      updateModeButtons();
-    }
-
-    async function startQrScanInternal() {
-      try {
-        qrReaderWrap.style.display = "block";
-
-        if (!qrScanner) qrScanner = new Html5Qrcode("qr-reader");
-
-        await qrScanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => parseQrText(decodedText),
-          () => {}
-        );
-
-        qrEnabled = true;
-        updateModeButtons();
-        updateStatus("状態: QR読み取り中...");
-      } catch (e) {
-        qrEnabled = false;
-        updateModeButtons();
-        updateStatus("状態: カメラ起動に失敗しました");
-      }
-    }
-
-    function toggleAdminPanel() {
-      if (!isAdmin) return;
-      adminOpen = !adminOpen;
-      adminWrap.style.display = adminOpen ? "block" : "none";
-      updateModeButtons();
-      updateAdminFields();
-      exportConfigToTextarea();
-    }
-
-    function getOnePosition() {
-      return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 30000,
-          maximumAge: 0
+    // Initialize floor buttons
+    function initFloorButtons() {
+        floorBtnContainer.innerHTML = '';
+        floorPlans.forEach((f, idx) => {
+            const btn = document.createElement('button');
+            btn.textContent = f.name;
+            btn.addEventListener('click', () => selectFloor(idx));
+            floorBtnContainer.appendChild(btn);
         });
-      });
+        updateFloorButtons();
+    }
+    function updateFloorButtons() {
+        const buttons = floorBtnContainer.querySelectorAll('button');
+        buttons.forEach((btn, idx) => {
+            if (idx === currentFloorIndex) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
     }
 
-    async function loadConfig() {
-      const res = await fetch("./config.json", { cache: "no-store" });
-      if (!res.ok) throw new Error("config");
-      config = await res.json();
-      appTitleEl.textContent = config.appTitle || "フロアマップ";
+    // Load floor plan
+    function loadFloor(index) {
+        currentFloorIndex = index;
+        const plan = floorPlans[index];
+        floorPlanImg.src = plan.image;
+        updateFloorButtons();
+        // Recompute marker position when floor changes
+        if (trackingMode === 'gps') {
+            // marker will update on next GPS event
+        } else {
+            // reposition marker to keep pixel coordinate same ratio on new image
+            updateMarkerPosition(markerPos.x, markerPos.y);
+        }
     }
 
-    function applyQuery() {
-      const params = new URLSearchParams(window.location.search);
-      isAdmin = params.get("admin") === "1";
-      if (isAdmin) {
-        adminBtn.style.display = "block";
-        pointBtn.style.display = "block";
-      }
-
-      currentFloor = floorOrder()[0];
-      const floor = params.get("floor");
-      if (floor && config.floors[floor]) currentFloor = floor;
-
-      setMapImageForFloor(currentFloor);
-      updateFloorButtons();
-      updateModeButtons();
-      updateAdminFields();
-
-      mapImage.onload = () => {
-        setNormalizedPosition(currentFloor, 0.5, 0.5, "現在地");
-        updateStatus(`状態: ${currentFloor}を表示中`);
-      };
+    // Convert lat/lng to pixel coordinates
+    function latLngToPixel(lat, lng) {
+        const anchor = floorPlans[currentFloorIndex].anchor;
+        const imgW = floorPlanImg.clientWidth;
+        const imgH = floorPlanImg.clientHeight;
+        const x = ((lng - anchor.lng1) / (anchor.lng2 - anchor.lng1)) * imgW;
+        const y = (1 - (lat - anchor.lat2) / (anchor.lat1 - anchor.lat2)) * imgH;
+        return { x, y };
     }
 
-    widthMetersRange?.addEventListener("input", () => {
-      getFloorConfig(currentFloor).widthMeters = Number(widthMetersRange.value);
-      updateAdminFields();
-      renderPosition();
-      exportConfigToTextarea();
+    // Convert pixel to lat/lng (for GPS recalibration or manual set)
+    function pixelToLatLng(x, y) {
+        const anchor = floorPlans[currentFloorIndex].anchor;
+        const imgW = floorPlanImg.clientWidth;
+        const imgH = floorPlanImg.clientHeight;
+        const lng = anchor.lng1 + (x / imgW) * (anchor.lng2 - anchor.lng1);
+        const lat = anchor.lat2 + (1 - (y / imgH)) * (anchor.lat1 - anchor.lat2);
+        return { lat, lng };
+    }
+
+    // Update marker element
+    function updateMarkerPosition(x, y) {
+        markerPos = { x, y };
+        marker.style.left = x + 'px';
+        marker.style.top = y + 'px';
+    }
+
+    // GPS tracking functions
+    function startGPS() {
+        if (gpsWatchId !== null) return;
+        gpsWatchId = navigator.geolocation.watchPosition(pos => {
+            const { latitude, longitude, accuracy } = pos.coords;
+            if (accuracyThreshold && accuracy > accuracyThreshold) {
+                // If accuracy is worse than threshold and currently using gps mode, fall back to step
+                if (trackingMode === 'gps') {
+                    console.log('GPS精度不良のため、歩数モードに切替');
+                    document.getElementById('modeStep').checked = true;
+                    switchMode('step');
+                }
+                return;
+            }
+            const { x, y } = latLngToPixel(latitude, longitude);
+            updateMarkerPosition(x, y);
+        }, err => {
+            console.error(err);
+        }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
+    }
+    function stopGPS() {
+        if (gpsWatchId !== null) {
+            navigator.geolocation.clearWatch(gpsWatchId);
+            gpsWatchId = null;
+        }
+    }
+
+    // Step tracking functions
+    function startStepTracking() {
+        if (stepListening) return;
+        stepListening = true;
+        stepCount = 0;
+        lastStepTime = 0;
+        window.addEventListener('devicemotion', handleMotion);
+        window.addEventListener('deviceorientation', handleOrientation);
+    }
+    function stopStepTracking() {
+        if (!stepListening) return;
+        stepListening = false;
+        window.removeEventListener('devicemotion', handleMotion);
+        window.removeEventListener('deviceorientation', handleOrientation);
+    }
+    function handleOrientation(event) {
+        // event.alpha is compass heading relative to north (0-360)
+        if (event.alpha !== null) {
+            // adjust orientation so 0 = north and convert to radians
+            orientation = event.alpha;
+        }
+    }
+    let prevAccMag = 0;
+    function handleMotion(event) {
+        const acc = event.accelerationIncludingGravity;
+        if (!acc) return;
+        const magnitude = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+        const now = performance.now();
+        if (magnitude - prevAccMag > 5 && (now - lastStepTime) > 400) {
+            lastStepTime = now;
+            performStep();
+        }
+        prevAccMag = magnitude;
+    }
+    function performStep() {
+        stepLength = parseFloat(document.getElementById('stepLengthInput').value) || 0.7;
+        // Convert orientation to radians
+        const rad = orientation * Math.PI / 180;
+        // Approximate meters per pixel using anchor lat/lng difference. Use horizontal scale for both axes.
+        const anchor = floorPlans[currentFloorIndex].anchor;
+        const imgW = floorPlanImg.clientWidth;
+        const metersPerLng = Math.abs((anchor.lng2 - anchor.lng1)) * 111320 * Math.cos(((anchor.lat1 + anchor.lat2)/2) * Math.PI / 180);
+        const metersPerLat = Math.abs((anchor.lat1 - anchor.lat2)) * 111000;
+        const meterPerPixelX = metersPerLng / imgW;
+        const meterPerPixelY = metersPerLat / floorPlanImg.clientHeight;
+        const deltaX = (stepLength / meterPerPixelX) * Math.sin(rad);
+        const deltaY = -(stepLength / meterPerPixelY) * Math.cos(rad);
+        const newX = markerPos.x + deltaX;
+        const newY = markerPos.y + deltaY;
+        updateMarkerPosition(newX, newY);
+    }
+
+    // Mode switching
+    function switchMode(mode) {
+        trackingMode = mode;
+        if (mode === 'gps') {
+            stopStepTracking();
+            startGPS();
+        } else {
+            stopGPS();
+            startStepTracking();
+        }
+    }
+
+    // Manual correction: on click, set marker
+    let manualCorrection = false;
+    mapContainer.addEventListener('click', function(e) {
+        if (!manualCorrection) return;
+        const rect = floorPlanImg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        updateMarkerPosition(x, y);
+        if (trackingMode === 'step') {
+            // update orientation base lat/lng from step mode
+        }
+        manualCorrection = false;
+        document.getElementById('manualBtn').disabled = false;
     });
 
-    heightMetersRange?.addEventListener("input", () => {
-      getFloorConfig(currentFloor).heightMeters = Number(heightMetersRange.value);
-      updateAdminFields();
-      renderPosition();
-      exportConfigToTextarea();
+    // QR correction: ask user to input lat/lng or parse a QR. For simplicity, prompt for lat/lng.
+    document.getElementById('qrBtn').addEventListener('click', function() {
+        const lat = parseFloat(prompt('QRコードに含まれる緯度を入力してください:'));
+        const lng = parseFloat(prompt('QRコードに含まれる経度を入力してください:'));
+        if (!isNaN(lat) && !isNaN(lng)) {
+            const { x, y } = latLngToPixel(lat, lng);
+            updateMarkerPosition(x, y);
+        }
+    });
+    document.getElementById('manualBtn').addEventListener('click', function() {
+        manualCorrection = true;
+        this.disabled = true;
+        alert('地図上で新しい位置をタップしてください');
+    });
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        // reset: re-fetch current GPS location or step starting point
+        if (trackingMode === 'gps' && gpsWatchId === null) {
+            startGPS();
+        } else if (trackingMode === 'step') {
+            // In step mode, recenter marker to current GPS if available
+            navigator.geolocation.getCurrentPosition(pos => {
+                const { latitude, longitude, accuracy } = pos.coords;
+                const { x, y } = latLngToPixel(latitude, longitude);
+                updateMarkerPosition(x, y);
+            });
+        }
+    });
+    document.getElementById('settingsBtn').addEventListener('click', function() {
+        document.getElementById('settingsPanel').style.display = 'block';
+    });
+    document.getElementById('closeSettingsBtn').addEventListener('click', function() {
+        document.getElementById('settingsPanel').style.display = 'none';
+    });
+    // Settings panel events
+    document.getElementById('adminModeCheckbox').addEventListener('change', function() {
+        document.getElementById('adminControls').style.display = this.checked ? 'block' : 'none';
+    });
+    document.getElementById('updateAnchorBtn').addEventListener('click', function() {
+        const latVal = parseFloat(document.getElementById('latInput').value);
+        const lngVal = parseFloat(document.getElementById('lngInput').value);
+        const rotVal = parseFloat(document.getElementById('rotationInput').value);
+        if (!isNaN(latVal) && !isNaN(lngVal)) {
+            // update anchor top-left with given values; keep bottom-right constant for simplicity
+            floorPlans[currentFloorIndex].anchor.lat1 = latVal;
+            floorPlans[currentFloorIndex].anchor.lng1 = lngVal;
+            // update rotation angle for orientation offset
+            // rotation not applied to image here (should rotate floor plan), but storing for reference
+        }
+    });
+    document.getElementById('saveDataBtn').addEventListener('click', function() {
+        const dataStr = JSON.stringify(floorPlans, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'floorPlans.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+    document.getElementById('stepLengthInput').addEventListener('change', function() {
+        stepLength = parseFloat(this.value);
+    });
+    document.getElementById('accuracyThresholdInput').addEventListener('change', function() {
+        accuracyThreshold = parseFloat(this.value);
     });
 
-    mapNorthDegRange?.addEventListener("input", () => {
-      getFloorConfig(currentFloor).mapNorthDeg = Number(mapNorthDegRange.value);
-      updateAdminFields();
-      renderPosition();
-      exportConfigToTextarea();
+    // Radio switch events
+    document.getElementById('modeGps').addEventListener('change', function() {
+        if (this.checked) switchMode('gps');
+    });
+    document.getElementById('modeStep').addEventListener('change', function() {
+        if (this.checked) switchMode('step');
     });
 
-
-    mapWrap.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-
-        gestureStartDistance = getTouchDistance(t1, t2);
-        gestureStartAngle = getTouchAngle(t1, t2);
-
-        const center = getTouchCenter(t1, t2);
-        gestureStartCenterX = center.x;
-        gestureStartCenterY = center.y;
-
-        gestureStartScale = viewScale;
-        gestureStartRotation = viewRotation;
-        gestureStartTranslateX = viewTranslateX;
-        gestureStartTranslateY = viewTranslateY;
-
-        singleTouchDragging = false;
-        return;
-      }
-
-      if (e.touches.length === 1) {
-        singleTouchDragging = true;
-        singleTouchStartX = e.touches[0].clientX;
-        singleTouchStartY = e.touches[0].clientY;
-      }
-    }, { passive: false });
-
-    mapWrap.addEventListener("touchmove", (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-
-        const currentDistance = getTouchDistance(t1, t2);
-        const currentAngle = getTouchAngle(t1, t2);
-        const currentCenter = getTouchCenter(t1, t2);
-
-        viewScale = gestureStartScale * (currentDistance / gestureStartDistance);
-        viewScale = Math.max(0.8, Math.min(4, viewScale));
-
-        viewRotation = gestureStartRotation + (currentAngle - gestureStartAngle);
-
-        viewTranslateX = gestureStartTranslateX + (currentCenter.x - gestureStartCenterX);
-        viewTranslateY = gestureStartTranslateY + (currentCenter.y - gestureStartCenterY);
-
-        applyMapTransform();
-        return;
-      }
-
-      if (e.touches.length === 1 && singleTouchDragging) {
-        e.preventDefault();
-
-        const dx = e.touches[0].clientX - singleTouchStartX;
-        const dy = e.touches[0].clientY - singleTouchStartY;
-
-        viewTranslateX += dx;
-        viewTranslateY += dy;
-
-        singleTouchStartX = e.touches[0].clientX;
-        singleTouchStartY = e.touches[0].clientY;
-
-        applyMapTransform();
-      }
-    }, { passive: false });
-
-    mapWrap.addEventListener("touchend", (e) => {
-      if (e.touches.length === 0) {
-        singleTouchDragging = false;
-      }
+    // Gestures: pinch/rotate for zooming and rotation (manual)
+    let initialDistance = null;
+    let initialScale = 1;
+    let currentScale = 1;
+    let initialRotation = null;
+    let currentRotation = 0;
+    function getDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.hypot(dx, dy);
+    }
+    function getAngle(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.atan2(dy, dx) * 180 / Math.PI;
+    }
+    floorPlanImg.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            initialDistance = getDistance(e.touches);
+            initialScale = currentScale;
+            initialRotation = getAngle(e.touches) - currentRotation;
+        }
+    });
+    floorPlanImg.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2 && initialDistance) {
+            const newDistance = getDistance(e.touches);
+            const scale = newDistance / initialDistance;
+            currentScale = initialScale * scale;
+            const angle = getAngle(e.touches) - initialRotation;
+            currentRotation = angle;
+            floorPlanImg.style.transform = `scale(${currentScale}) rotate(${currentRotation}deg)`;
+        }
+    });
+    floorPlanImg.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) {
+            initialDistance = null;
+            initialRotation = null;
+        }
     });
 
-    window.addEventListener("resize", () => {
-      renderPosition();
-    });
-
-    window.addEventListener("load", async () => {
-      try {
-        await loadConfig();
-        buildFloorButtons();
-        applyQuery();
-        applyMapTransform();
-        updateTrackingButtons();
-        updateTrackingInfo();
-      } catch (e) {
-        updateStatus("状態: config.json の読み込みに失敗しました");
-      }
-    });
-  </script>
+    // Initialize
+    initFloorButtons();
+    loadFloor(0);
+    // Start GPS by default
+    switchMode('gps');
+    </script>
 </body>
 </html>

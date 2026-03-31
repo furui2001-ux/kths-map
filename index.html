@@ -232,7 +232,7 @@
 
     .action-row {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 10px;
       margin-top: 12px;
     }
@@ -524,7 +524,7 @@
 
     @media (max-width: 700px) {
       .action-row {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
       }
 
       .track-grid {
@@ -731,8 +731,10 @@
     let isAdmin = false;
 
     let headingDeg = null;
+    let rawHeadingDeg = null;
+    let headingOffsetDeg = Number(localStorage.getItem("headingOffsetDeg") || 0);
     let headingLocked = false;
-    let lockedHeadingDeg = null;
+    let lockedHeading = null;
     let lastAccuracyMeters = 0;
     let ignoreGpsUntil = 0;
 
@@ -792,6 +794,16 @@
     // =========================
     // 表示更新系
     // =========================
+    function normalizeDeg(deg) {
+      let d = deg % 360;
+      if (d < 0) d += 360;
+      return d;
+    }
+
+    function saveHeadingOffset() {
+      localStorage.setItem("headingOffsetDeg", String(headingOffsetDeg));
+    }
+
     function updateStatus(html) {
       statusChip.innerHTML = html.replace(/<br>/g, " / ");
     }
@@ -809,12 +821,12 @@
       gpsBtn.classList.toggle("mode-on", gpsEnabled);
       qrBtn.classList.toggle("mode-on", qrEnabled);
       manualBtn.classList.toggle("manual-on", manualMode);
-      headingBtn.classList.toggle("mode-on", headingLocked);
+      if (headingBtn) headingBtn.classList.toggle("mode-on", headingLocked);
 
       gpsBtn.textContent = gpsEnabled ? "GPS追従中" : "GPS追従";
       qrBtn.textContent = qrEnabled ? "QR読取中" : "QR補正";
       manualBtn.textContent = manualMode ? "位置補正中" : "位置補正";
-      headingBtn.textContent = headingLocked ? "向き固定中" : "向き補正";
+      if (headingBtn) headingBtn.textContent = headingLocked ? "向き固定中" : "向き補正";
     }
 
     function buildFloorButtons() {
@@ -893,7 +905,7 @@
         return;
       }
 
-      const displayHeading = headingDeg - getFloorConfig(currentFloor).mapNorthDeg;
+      const displayHeading = normalizeDeg(headingDeg - getFloorConfig(currentFloor).mapNorthDeg);
       headingCone.style.display = "block";
       headingCone.style.transform = `rotate(${displayHeading}deg)`;
     }
@@ -1141,6 +1153,30 @@
       resetStepTracking();
     }
 
+    function toggleHeadingLock() {
+      if (headingDeg == null && rawHeadingDeg == null) {
+        updateStatus("向き情報をまだ取得できていません");
+        return;
+      }
+
+      headingLocked = !headingLocked;
+
+      if (headingLocked) {
+        lockedHeading = headingDeg != null ? headingDeg : normalizeDeg((rawHeadingDeg || 0) + headingOffsetDeg);
+        updateStatus("向き補正ON / 現在の向きで固定");
+      } else {
+        if (rawHeadingDeg != null && lockedHeading != null) {
+          headingOffsetDeg = normalizeDeg(lockedHeading - rawHeadingDeg);
+          saveHeadingOffset();
+          headingDeg = normalizeDeg(rawHeadingDeg + headingOffsetDeg);
+        }
+        updateStatus("向き補正OFF / 自動追従");
+      }
+
+      renderHeading();
+      updateModeButtons();
+    }
+
     function toggleManualMode() {
       manualMode = !manualMode;
 
@@ -1150,28 +1186,6 @@
 
       updateModeButtons();
       updateStatus(manualMode ? "位置補正モードON" : "位置補正モードOFF");
-    }
-
-    function toggleHeadingLock() {
-      if (headingDeg == null && !headingLocked) {
-        updateStatus("先に向きを取得してください");
-        startHeading();
-        return;
-      }
-
-      headingLocked = !headingLocked;
-
-      if (headingLocked) {
-        lockedHeadingDeg = headingDeg != null ? headingDeg : 0;
-        headingDeg = lockedHeadingDeg;
-        updateStatus("向き補正ON（固定）");
-      } else {
-        lockedHeadingDeg = null;
-        updateStatus("向き補正OFF（自動）");
-      }
-
-      renderHeading();
-      updateModeButtons();
     }
 
     function getOnePosition() {
@@ -1324,12 +1338,12 @@
 
       if (raw == null) return;
 
-      raw = ((raw % 360) + 360) % 360;
+      rawHeadingDeg = normalizeDeg(raw);
 
-      if (!headingLocked) {
-        headingDeg = raw;
+      if (headingLocked) {
+        headingDeg = lockedHeading != null ? lockedHeading : normalizeDeg(rawHeadingDeg + headingOffsetDeg);
       } else {
-        headingDeg = lockedHeadingDeg != null ? lockedHeadingDeg : raw;
+        headingDeg = normalizeDeg(rawHeadingDeg + headingOffsetDeg);
       }
 
       renderHeading();
@@ -1741,7 +1755,7 @@
 
     // =========================
     // 地図クリック
-    // 手動補正 / 地点追加
+    // 位置補正 / 地点追加
     // =========================
     mapWrap.addEventListener("click", async (event) => {
       if ((!manualMode && !pointMode) || draggingPointId) return;

@@ -232,7 +232,7 @@
 
     .action-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       margin-top: 12px;
     }
@@ -660,7 +660,7 @@
 
       <div class="hint">
         拡大後は1本指で地図移動できます。
-        位置補正は拡大・回転後でも押した場所を正しく逆変換します。
+        手動補正は拡大・回転後でも押した場所を正しく逆変換します。
       </div>
     </div>
 
@@ -732,9 +732,13 @@
 
     let headingDeg = null;
     let rawHeadingDeg = null;
-    let headingOffsetDeg = Number(localStorage.getItem("headingOffsetDeg") || 0);
     let headingLocked = false;
-    let lockedHeading = null;
+    let lockedHeadingDeg = 0;
+    let headingOffsetStep = Number(localStorage.getItem("headingOffsetStep") || 0);
+    let headingOffsetGPS = Number(localStorage.getItem("headingOffsetGPS") || 0);
+    let lastGpsLat = null;
+    let lastGpsLon = null;
+    let gpsCourseDeg = null;
     let lastAccuracyMeters = 0;
     let ignoreGpsUntil = 0;
 
@@ -794,16 +798,6 @@
     // =========================
     // 表示更新系
     // =========================
-    function normalizeDeg(deg) {
-      let d = deg % 360;
-      if (d < 0) d += 360;
-      return d;
-    }
-
-    function saveHeadingOffset() {
-      localStorage.setItem("headingOffsetDeg", String(headingOffsetDeg));
-    }
-
     function updateStatus(html) {
       statusChip.innerHTML = html.replace(/<br>/g, " / ");
     }
@@ -821,12 +815,12 @@
       gpsBtn.classList.toggle("mode-on", gpsEnabled);
       qrBtn.classList.toggle("mode-on", qrEnabled);
       manualBtn.classList.toggle("manual-on", manualMode);
-      if (headingBtn) headingBtn.classList.toggle("mode-on", headingLocked);
+      headingBtn.classList.toggle("mode-on", headingLocked);
 
       gpsBtn.textContent = gpsEnabled ? "GPS追従中" : "GPS追従";
       qrBtn.textContent = qrEnabled ? "QR読取中" : "QR補正";
       manualBtn.textContent = manualMode ? "位置補正中" : "位置補正";
-      if (headingBtn) headingBtn.textContent = headingLocked ? "向き固定中" : "向き補正";
+      headingBtn.textContent = headingLocked ? "向き固定中" : "向き補正";
     }
 
     function buildFloorButtons() {
@@ -905,7 +899,7 @@
         return;
       }
 
-      const displayHeading = normalizeDeg(headingDeg - getFloorConfig(currentFloor).mapNorthDeg);
+      const displayHeading = headingDeg - getFloorConfig(currentFloor).mapNorthDeg;
       headingCone.style.display = "block";
       headingCone.style.transform = `rotate(${displayHeading}deg)`;
     }
@@ -1153,30 +1147,6 @@
       resetStepTracking();
     }
 
-    function toggleHeadingLock() {
-      if (headingDeg == null && rawHeadingDeg == null) {
-        updateStatus("向き情報をまだ取得できていません");
-        return;
-      }
-
-      headingLocked = !headingLocked;
-
-      if (headingLocked) {
-        lockedHeading = headingDeg != null ? headingDeg : normalizeDeg((rawHeadingDeg || 0) + headingOffsetDeg);
-        updateStatus("向き補正ON / 現在の向きで固定");
-      } else {
-        if (rawHeadingDeg != null && lockedHeading != null) {
-          headingOffsetDeg = normalizeDeg(lockedHeading - rawHeadingDeg);
-          saveHeadingOffset();
-          headingDeg = normalizeDeg(rawHeadingDeg + headingOffsetDeg);
-        }
-        updateStatus("向き補正OFF / 自動追従");
-      }
-
-      renderHeading();
-      updateModeButtons();
-    }
-
     function toggleManualMode() {
       manualMode = !manualMode;
 
@@ -1341,9 +1311,15 @@
       rawHeadingDeg = normalizeDeg(raw);
 
       if (headingLocked) {
-        headingDeg = lockedHeading != null ? lockedHeading : normalizeDeg(rawHeadingDeg + headingOffsetDeg);
+        headingDeg = lockedHeadingDeg;
       } else {
-        headingDeg = normalizeDeg(rawHeadingDeg + headingOffsetDeg);
+        if (activeTrackingSource === "gps" && gpsCourseDeg != null) {
+          headingDeg = normalizeDeg(gpsCourseDeg + headingOffsetGPS);
+        } else if (activeTrackingSource === "gps") {
+          headingDeg = normalizeDeg(rawHeadingDeg + headingOffsetGPS);
+        } else {
+          headingDeg = normalizeDeg(rawHeadingDeg + headingOffsetStep);
+        }
       }
 
       renderHeading();
@@ -1373,12 +1349,24 @@
           const lon = pos.coords.longitude;
           const acc = pos.coords.accuracy;
 
+          if (lastGpsLat != null && lastGpsLon != null) {
+            const dLat = lat - lastGpsLat;
+            const dLon = lon - lastGpsLon;
+
+            if (Math.abs(dLat) > 0.0000001 || Math.abs(dLon) > 0.0000001) {
+              gpsCourseDeg = normalizeDeg(Math.atan2(dLon, dLat) * 180 / Math.PI);
+            }
+          }
+
+          lastGpsLat = lat;
+          lastGpsLon = lon;
+
           lastAccuracyMeters = acc || 0;
           activeTrackingSource = resolveTrackingSource();
           stepDetectionEnabled = activeTrackingSource === "step";
 
           if (!anchor.enabled || anchor.baseLat == null || anchor.baseLon == null) {
-            updateStatus("まずQR補正または位置補正で現在地を置いてください");
+            updateStatus("まずQR補正または手動補正で現在地を置いてください");
             renderPosition();
             updateTrackingInfo();
             return;
@@ -1416,6 +1404,10 @@
             label: "GPS現在地"
           };
 
+          if (!headingLocked && gpsCourseDeg != null) {
+            headingDeg = normalizeDeg(gpsCourseDeg + headingOffsetGPS);
+          }
+
           renderPosition();
           updateTrackingInfo();
         },
@@ -1433,6 +1425,9 @@
 
     function stopGPSInternal() {
       gpsEnabled = false;
+      gpsCourseDeg = null;
+      lastGpsLat = null;
+      lastGpsLon = null;
 
       if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
@@ -1454,6 +1449,39 @@
       } else {
         startGPSInternal();
       }
+    }
+
+    function normalizeDeg(deg) {
+      let d = deg % 360;
+      if (d < 0) d += 360;
+      return d;
+    }
+
+    function toggleHeadingLock() {
+      headingLocked = !headingLocked;
+
+      if (headingLocked) {
+        lockedHeadingDeg = headingDeg ?? 0;
+        updateStatus("向き補正ON（固定）");
+      } else {
+        if (rawHeadingDeg != null) {
+          if (activeTrackingSource === "gps") {
+            let diff = lockedHeadingDeg - gpsCourseDeg;
+            if (gpsCourseDeg == null) {
+              diff = lockedHeadingDeg - rawHeadingDeg;
+            }
+            headingOffsetGPS = normalizeDeg(diff);
+            localStorage.setItem("headingOffsetGPS", headingOffsetGPS);
+          } else {
+            headingOffsetStep = normalizeDeg(lockedHeadingDeg - rawHeadingDeg);
+            localStorage.setItem("headingOffsetStep", headingOffsetStep);
+          }
+        }
+        updateStatus("向き補正OFF（自動）");
+      }
+
+      renderHeading();
+      updateModeButtons();
     }
 
     // =========================
@@ -1553,7 +1581,13 @@
     }
 
     function moveByStep(stepMeters) {
-      if (!currentFloor || headingDeg == null) return;
+      if (!currentFloor) return;
+
+      if (!headingLocked && rawHeadingDeg != null) {
+        headingDeg = normalizeDeg(rawHeadingDeg + headingOffsetStep);
+      }
+
+      if (headingDeg == null) return;
 
       const meta = getFloorConfig(currentFloor);
       const theta = (headingDeg - (meta.mapNorthDeg || 0)) * Math.PI / 180;
@@ -1755,7 +1789,7 @@
 
     // =========================
     // 地図クリック
-    // 位置補正 / 地点追加
+    // 手動補正 / 地点追加
     // =========================
     mapWrap.addEventListener("click", async (event) => {
       if ((!manualMode && !pointMode) || draggingPointId) return;

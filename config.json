@@ -5,7 +5,7 @@
       "image": "1F.jpg",
       "widthMeters": 235,
       "heightMeters": 150,
-      "mapNorthDeg": 12,
+      "mapNorthDeg": 7,
       "points": [
         {
           "id": "P01",
@@ -27,28 +27,28 @@
       "image": "2F.jpg",
       "widthMeters": 235,
       "heightMeters": 150,
-      "mapNorthDeg": 12,
+      "mapNorthDeg": 7,
       "points": []
     },
     "3F": {
       "image": "3F.jpg",
       "widthMeters": 235,
       "heightMeters": 150,
-      "mapNorthDeg": 12,
+      "mapNorthDeg": 7,
       "points": []
     },
     "4F": {
       "image": "4F.jpg",
       "widthMeters": 235,
       "heightMeters": 150,
-      "mapNorthDeg": 12,
+      "mapNorthDeg": 7,
       "points": []
     },
     "5F": {
       "image": "5F.jpg",
       "widthMeters": 235,
       "heightMeters": 150,
-      "mapNorthDeg": 12,
+      "mapNorthDeg": 7,
       "points": []
     }
   }

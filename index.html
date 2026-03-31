@@ -232,7 +232,7 @@
 
     .action-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       margin-top: 12px;
     }
@@ -524,7 +524,7 @@
 
     @media (max-width: 700px) {
       .action-row {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
       }
 
       .track-grid {
@@ -564,7 +564,8 @@
       <!-- メイン操作 -->
       <div class="action-row">
         <button id="gpsBtn" class="action-btn" onclick="toggleGPS()">GPS追従</button>
-        <button id="manualBtn" class="action-btn" onclick="toggleManualMode()">手動補正</button>
+        <button id="manualBtn" class="action-btn" onclick="toggleManualMode()">位置補正</button>
+        <button id="headingBtn" class="action-btn" onclick="toggleHeadingLock()">向き補正</button>
         <button id="qrBtn" class="action-btn" onclick="toggleQR()">QR補正</button>
         <button id="settingsBtn" class="action-btn" onclick="toggleSettingsSheet(true)">設定</button>
       </div>
@@ -659,7 +660,7 @@
 
       <div class="hint">
         拡大後は1本指で地図移動できます。
-        手動補正は拡大・回転後でも押した場所を正しく逆変換します。
+        位置補正は拡大・回転後でも押した場所を正しく逆変換します。
       </div>
     </div>
 
@@ -695,6 +696,7 @@
     const gpsBtn = document.getElementById("gpsBtn");
     const qrBtn = document.getElementById("qrBtn");
     const manualBtn = document.getElementById("manualBtn");
+    const headingBtn = document.getElementById("headingBtn");
 
     const adminCurrentFloor = document.getElementById("adminCurrentFloor");
     const widthMetersRange = document.getElementById("widthMetersRange");
@@ -729,6 +731,8 @@
     let isAdmin = false;
 
     let headingDeg = null;
+    let headingLocked = false;
+    let lockedHeadingDeg = null;
     let lastAccuracyMeters = 0;
     let ignoreGpsUntil = 0;
 
@@ -805,10 +809,12 @@
       gpsBtn.classList.toggle("mode-on", gpsEnabled);
       qrBtn.classList.toggle("mode-on", qrEnabled);
       manualBtn.classList.toggle("manual-on", manualMode);
+      headingBtn.classList.toggle("mode-on", headingLocked);
 
       gpsBtn.textContent = gpsEnabled ? "GPS追従中" : "GPS追従";
       qrBtn.textContent = qrEnabled ? "QR読取中" : "QR補正";
-      manualBtn.textContent = manualMode ? "手動補正中" : "手動補正";
+      manualBtn.textContent = manualMode ? "位置補正中" : "位置補正";
+      headingBtn.textContent = headingLocked ? "向き固定中" : "向き補正";
     }
 
     function buildFloorButtons() {
@@ -1143,7 +1149,29 @@
       }
 
       updateModeButtons();
-      updateStatus(manualMode ? "手動補正モードON" : "手動補正モードOFF");
+      updateStatus(manualMode ? "位置補正モードON" : "位置補正モードOFF");
+    }
+
+    function toggleHeadingLock() {
+      if (headingDeg == null && !headingLocked) {
+        updateStatus("先に向きを取得してください");
+        startHeading();
+        return;
+      }
+
+      headingLocked = !headingLocked;
+
+      if (headingLocked) {
+        lockedHeadingDeg = headingDeg != null ? headingDeg : 0;
+        headingDeg = lockedHeadingDeg;
+        updateStatus("向き補正ON（固定）");
+      } else {
+        lockedHeadingDeg = null;
+        updateStatus("向き補正OFF（自動）");
+      }
+
+      renderHeading();
+      updateModeButtons();
     }
 
     function getOnePosition() {
@@ -1296,7 +1324,14 @@
 
       if (raw == null) return;
 
-      headingDeg = raw;
+      raw = ((raw % 360) + 360) % 360;
+
+      if (!headingLocked) {
+        headingDeg = raw;
+      } else {
+        headingDeg = lockedHeadingDeg != null ? lockedHeadingDeg : raw;
+      }
+
       renderHeading();
     }
 
@@ -1329,7 +1364,7 @@
           stepDetectionEnabled = activeTrackingSource === "step";
 
           if (!anchor.enabled || anchor.baseLat == null || anchor.baseLon == null) {
-            updateStatus("まずQR補正または手動補正で現在地を置いてください");
+            updateStatus("まずQR補正または位置補正で現在地を置いてください");
             renderPosition();
             updateTrackingInfo();
             return;
@@ -1726,13 +1761,13 @@
       if (manualMode) {
         try {
           const geo = await getOnePosition();
-          enableAnchor(nx, ny, "手動補正位置", geo.coords.latitude, geo.coords.longitude);
+          enableAnchor(nx, ny, "位置補正位置", geo.coords.latitude, geo.coords.longitude);
           ignoreGpsUntil = Date.now() + 3000;
           lastAccuracyMeters = geo.coords.accuracy || 0;
-          updateStatus("手動補正完了");
+          updateStatus("位置補正完了");
         } catch (e) {
-          setNormalizedPosition(currentFloor, nx, ny, "手動補正位置");
-          updateStatus("手動補正完了（GPS取得なし）");
+          setNormalizedPosition(currentFloor, nx, ny, "位置補正位置");
+          updateStatus("位置補正完了（GPS取得なし）");
         }
 
         manualMode = false;

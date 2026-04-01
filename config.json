@@ -1,8 +1,17 @@
 {
   "appTitle": "フロアマップ",
   "floors": {
+    "B1": {
+      "image": "B1.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": false,
+      "label": "B1"
+    },
     "1F": {
-      "image": "1F.jpg",
+      "image": "1F.png",
       "widthMeters": 235,
       "heightMeters": 150,
       "mapNorthDeg": 12,
@@ -21,35 +30,45 @@
           "nx": 0.7,
           "ny": 0.7
         }
-      ]
+      ],
+      "visible": true,
+      "label": "1F"
     },
     "2F": {
-      "image": "2F.jpg",
+      "image": "2F.png",
       "widthMeters": 235,
       "heightMeters": 150,
       "mapNorthDeg": 12,
-      "points": []
+      "points": [],
+      "visible": true,
+      "label": "2F"
     },
     "3F": {
-      "image": "3F.jpg",
+      "image": "3F.png",
       "widthMeters": 235,
       "heightMeters": 150,
       "mapNorthDeg": 12,
-      "points": []
+      "points": [],
+      "visible": true,
+      "label": "3F"
     },
     "4F": {
-      "image": "4F.jpg",
+      "image": "4F.png",
       "widthMeters": 235,
       "heightMeters": 150,
       "mapNorthDeg": 12,
-      "points": []
+      "points": [],
+      "visible": true,
+      "label": "4F"
     },
     "5F": {
-      "image": "5F.jpg",
+      "image": "5F.png",
       "widthMeters": 235,
       "heightMeters": 150,
       "mapNorthDeg": 12,
-      "points": []
+      "points": [],
+      "visible": true,
+      "label": "5F"
     }
   }
 }

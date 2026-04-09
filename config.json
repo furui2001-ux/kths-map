@@ -16,15 +16,59 @@
       "heightMeters": 150,
       "mapNorthDeg": 12,
       "points": [
-        {"id": "P01", "label": "地点1", "note": "", "nx": 0.3, "ny": 0.3},
-        {"id": "P02", "label": "地点2", "note": "", "nx": 0.7, "ny": 0.7}
+        {
+          "id": "P01",
+          "label": "地点1",
+          "note": "",
+          "nx": 0.3,
+          "ny": 0.3
+        },
+        {
+          "id": "P02",
+          "label": "地点2",
+          "note": "",
+          "nx": 0.7,
+          "ny": 0.7
+        }
       ],
       "visible": true,
       "label": "1F"
     },
-    "2F": {"image": "2F.png", "widthMeters": 235, "heightMeters": 150, "mapNorthDeg": 12, "points": [], "visible": true, "label": "2F"},
-    "3F": {"image": "3F.png", "widthMeters": 235, "heightMeters": 150, "mapNorthDeg": 12, "points": [], "visible": true, "label": "3F"},
-    "4F": {"image": "4F.png", "widthMeters": 235, "heightMeters": 150, "mapNorthDeg": 12, "points": [], "visible": true, "label": "4F"},
-    "5F": {"image": "5F.png", "widthMeters": 235, "heightMeters": 150, "mapNorthDeg": 12, "points": [], "visible": true, "label": "5F"}
+    "2F": {
+      "image": "2F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "2F"
+    },
+    "3F": {
+      "image": "3F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "3F"
+    },
+    "4F": {
+      "image": "4F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "4F"
+    },
+    "5F": {
+      "image": "5F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "5F"
+    }
   }
 }

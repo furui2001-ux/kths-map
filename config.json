@@ -7,7 +7,7 @@
       "heightMeters": 150,
       "mapNorthDeg": 12,
       "points": [],
-      "visible": false,
+      "visible": true,
       "label": "B1"
     },
     "1F": {
@@ -19,16 +19,16 @@
         {
           "id": "P01",
           "label": "地点1",
-          "note": "",
-          "nx": 0.3,
-          "ny": 0.3
+          "note": "職員玄関",
+          "nx": 0.33833,
+          "ny": 0.669975
         },
         {
           "id": "P02",
           "label": "地点2",
-          "note": "",
-          "nx": 0.7,
-          "ny": 0.7
+          "note": "選択３教室前",
+          "nx": 0.3386,
+          "ny": 0.444668
         }
       ],
       "visible": true,
@@ -68,7 +68,7 @@
       "mapNorthDeg": 12,
       "points": [],
       "visible": true,
-      "label": "5F"
+      "label": "屋上"
     }
   }
 }

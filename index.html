@@ -85,11 +85,11 @@
       display: none;
       width: 0;
       height: 0;
-      border-top: 9px solid transparent;
-      border-bottom: 9px solid transparent;
-      border-right: 24px solid rgba(37,99,235,.48);
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 26px solid rgba(37,99,235,.48);
       transform: translate(-50%, -50%);
-      transform-origin: 50% 50%;
+      transform-origin: 50% 68%;
       pointer-events: none;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,.08));
     }
@@ -647,31 +647,9 @@
     }
 
     /**
-     * floor画像がレイアウト済みになるまで待つ。
-     * QR補正直後に別階へ切り替えた場合でも、画像サイズ確定後に
-     * 現在地を再描画できるようにする。
-     */
-    function waitForMapImageReady() {
-      return new Promise((resolve) => {
-        const done = () => requestAnimationFrame(resolve);
-
-        if (mapImage.complete && mapImage.naturalWidth > 0 && mapImage.clientWidth > 0) {
-          done();
-          return;
-        }
-
-        const prevOnLoad = mapImage.onload;
-        mapImage.onload = () => {
-          if (typeof prevOnLoad === "function") prevOnLoad();
-          done();
-        };
-      });
-    }
-
-    /**
-     * QRや地点座標が「画像全体基準」か「描画領域基準」かを吸収する。
-     * 画像全体を同じ座標系に揃えている運用に合わせて、基本は画像全体基準。
-     * object-fit: contain による外側余白だけを補正する。
+     * object-fit: contain で表示された画像の「実際の描画領域」基準で、
+     * 正規化座標(左上=(0,0), 右下=(1,1))を画面座標へ変換する。
+     * 画像内部の白い部分は画像の一部として扱う。
      */
     function normalizedToDisplay(nx, ny) {
       const { drawW, drawH, offsetX, offsetY } = getImageContentRect();
@@ -681,12 +659,37 @@
       };
     }
 
+    /**
+     * 画面座標を正規化座標へ変換する。
+     * 左上=(0,0), 右下=(1,1) で統一。
+     */
     function displayToNormalized(ux, uy) {
       const { drawW, drawH, offsetX, offsetY } = getImageContentRect();
       return {
         nx: Math.max(0, Math.min(1, (ux - offsetX) / drawW)),
         ny: Math.max(0, Math.min(1, (uy - offsetY) / drawH))
       };
+    }
+
+    /**
+     * フロア切替直後でも画像サイズが確定するまで待ってから座標を反映する。
+     * QR補正直後のズレを防ぐために使用する。
+     */
+    function waitForMapImageReady() {
+      return new Promise((resolve) => {
+        const done = () => requestAnimationFrame(() => requestAnimationFrame(resolve));
+
+        if (mapImage.complete && mapImage.naturalWidth > 0 && mapImage.clientWidth > 0) {
+          done();
+          return;
+        }
+
+        const prevOnload = mapImage.onload;
+        mapImage.onload = () => {
+          if (typeof prevOnload === "function") prevOnload();
+          done();
+        };
+      });
     }
 
     function getDisplayPosition() {
@@ -766,8 +769,8 @@
       const points = getFloorConfig(currentFloor).points || [];
 
       points.forEach((p) => {
-        const pos = normalizedToDisplay(p.nx, p.ny);
         const el = document.createElement("div");
+        const pos = normalizedToDisplay(p.nx, p.ny);
         el.className = "point-badge";
         el.textContent = p.label;
         el.dataset.pointId = p.id;
@@ -1376,13 +1379,11 @@
 
       const meta = getFloorConfig(currentFloor);
 
-      /**
-       * 0度=北、90度=東 で統一して移動計算する。
-       * 以前は表示用の矢印の基準と移動計算の基準が90度ずれていたため、
-       * 「向いている方向の左90度へ進む」ように見えていた。
+      /*
+       * 0度=上(北)、90度=右(東) で統一して歩数移動する。
+       * renderHeading() も同じ heading を使うので、向きと移動方向が揃う。
        */
-      const worldHeadingDeg = normalizeDeg(displayHeading);
-      const mapHeadingDeg = normalizeDeg(worldHeadingDeg - (meta.mapNorthDeg || 0));
+      const mapHeadingDeg = normalizeDeg(displayHeading - (meta.mapNorthDeg || 0));
       const theta = mapHeadingDeg * Math.PI / 180;
 
       const dxMapMeters = stepMeters * Math.sin(theta);
@@ -1541,7 +1542,7 @@
       const ux = sx + cx;
       const uy = sy + cy;
 
-      return displayToNormalized(ux, uy);
+            return displayToNormalized(ux, uy);
     }
 
     mapWrap.addEventListener("click", async (event) => {

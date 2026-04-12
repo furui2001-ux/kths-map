@@ -86,22 +86,36 @@
       height: 0;
       pointer-events: none;
     }
+
+    /* 向きマーカーは「中心の赤い点」と「円周上を回る青い矢印」に分離する */
+    #markerOrbit {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 0;
+      height: 0;
+      z-index: 9;
+      pointer-events: none;
+      transform: rotate(0deg);
+      transform-origin: 0 0;
+    }
+
     #headingCone {
       position: absolute;
       left: 0;
       top: 0;
       z-index: 9;
       display: none;
-      width: 0;
-      height: 0;
-      border-left: 11px solid transparent;
-      border-right: 11px solid transparent;
-      border-bottom: 26px solid rgba(37,99,235,.46);
-      transform: translate(-50%, -115%) rotate(0deg);
-      transform-origin: 50% 85%;
+      width: 42px;
+      height: 48px;
+      background: rgba(37,99,235,.46);
+      clip-path: polygon(50% 100%, 0 0, 100% 0);
+      transform: translate(-50%, -48px);
+      transform-origin: 50% 100%;
       pointer-events: none;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,.08));
     }
+
     #dot {
       position: absolute;
       left: 0;
@@ -116,6 +130,7 @@
       box-shadow: 0 0 0 8px rgba(239,68,68,.16);
       pointer-events: none;
     }
+
     #dot.animate { animation: pulse 1.4s infinite; }
     @keyframes pulse {
       0% { transform: translate(-50%, -50%) scale(1); }
@@ -698,9 +713,17 @@
       }
 
       headingDeg = displaySourceHeading;
+
+      /**
+       * 矢印表示と移動計算の基準を同じにする。
+       * 0度=画像の上、90度=画像の右。
+       * 円周上を回すため、回転は orbit 側にだけ掛ける。
+       */
       const displayHeading = normalizeDeg(displaySourceHeading - getFloorConfig(currentFloor).mapNorthDeg);
+
       headingCone.style.display = "block";
-      headingCone.style.transform = `translate(-50%, -115%) rotate(${displayHeading}deg)`;
+      markerOrbit.style.transform = `rotate(${displayHeading}deg)`;
+      headingCone.style.transform = "translate(-50%, -48px)";
     }
 
     function renderPosition() {
@@ -1342,8 +1365,9 @@
       const meta = getFloorConfig(currentFloor);
 
       /**
-       * 0度=画像の上方向、90度=画像の右方向として統一する。
-       * 矢印表示もこの角度を使うので、見た目と移動方向を一致させる。
+       * 扇形マーカーは「細い先端が●側、広い辺が進行方向側」になる。
+       * したがって移動方向は、三角形の広い辺の中心方向と一致させる。
+       * 画面上で上向きのとき y は減少、右向きのとき x は増加する。
        */
       const mapHeadingDeg = normalizeDeg(displayHeading - (meta.mapNorthDeg || 0));
       const theta = mapHeadingDeg * Math.PI / 180;

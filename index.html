@@ -87,7 +87,7 @@
       pointer-events: none;
     }
 
-    /* 向きマーカーは「中心の赤い点」と「円周上を回る青い矢印」に分離する */
+    /* 円周上を回る向き表示。中心は赤い点。 */
     #markerOrbit {
       position: absolute;
       left: 0;
@@ -100,17 +100,18 @@
       transform-origin: 0 0;
     }
 
+    /* 扇形: 細い先端が●側、広い辺の中心が進行方向 */
     #headingCone {
       position: absolute;
       left: 0;
       top: 0;
       z-index: 9;
       display: none;
-      width: 30px;
-      height: 34px;
-      background: rgba(37,99,235,.42);
+      width: 24px;
+      height: 28px;
+      background: rgba(37,99,235,.38);
       clip-path: polygon(50% 100%, 0 0, 100% 0);
-      transform: translate(-50%, -36px);
+      transform: translate(-50%, -30px);
       transform-origin: 50% 100%;
       pointer-events: none;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,.08));
@@ -124,10 +125,10 @@
       width: 12px;
       height: 12px;
       background: #ef4444;
-      border: 3px solid #fff;
+      border: 2px solid #fff;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 0 6px rgba(239,68,68,.14);
+      box-shadow: 0 0 0 5px rgba(239,68,68,.12);
       pointer-events: none;
     }
 
@@ -267,7 +268,9 @@
           <img id="mapImage" src="" alt="フロアマップ" />
           <div id="accuracyCircle"></div>
           <div id="markerWrap">
-            <div id="headingCone"></div>
+            <div id="markerOrbit">
+              <div id="headingCone"></div>
+            </div>
             <div id="dot" class="animate"></div>
           </div>
           <div id="label">現在地</div>
@@ -396,6 +399,7 @@
     const mapTransform = document.getElementById("mapTransform");
     const mapImage = document.getElementById("mapImage");
     const markerWrap = document.getElementById("markerWrap");
+    const markerOrbit = document.getElementById("markerOrbit");
     const dot = document.getElementById("dot");
     const label = document.getElementById("label");
     const accuracyCircle = document.getElementById("accuracyCircle");
@@ -715,15 +719,14 @@
       headingDeg = displaySourceHeading;
 
       /**
-       * 矢印表示と移動計算の基準を同じにする。
        * 0度=画像の上、90度=画像の右。
-       * 円周上を回すため、回転は orbit 側にだけ掛ける。
+       * 扇形は markerOrbit を中心に回し、赤い点の外周を回る。
        */
       const displayHeading = normalizeDeg(displaySourceHeading - getFloorConfig(currentFloor).mapNorthDeg);
 
       headingCone.style.display = "block";
       markerOrbit.style.transform = `rotate(${displayHeading}deg)`;
-      headingCone.style.transform = "translate(-50%, -36px)";
+      headingCone.style.transform = "translate(-50%, -30px)";
     }
 
     function renderPosition() {
@@ -1091,6 +1094,12 @@
       updateStatus("QRの内容を解釈できません");
     }
 
+
+    // iPhone Safari ではユーザー操作後に方位センサー許可が必要な場合がある。
+    window.addEventListener("pointerdown", () => {
+      if (!headingEnabled) startHeading();
+    }, { once: true });
+
     async function startHeading() {
       if (headingEnabled) return true;
 
@@ -1146,7 +1155,11 @@
       return getHeadingForDisplay() ?? 0;
     }
 
-    function toggleHeadingLock() {
+    async function toggleHeadingLock() {
+      if (!headingEnabled) {
+        await startHeading();
+      }
+
       headingLocked = !headingLocked;
 
       if (headingLocked) {
@@ -1360,8 +1373,8 @@
       const meta = getFloorConfig(currentFloor);
 
       /**
-       * 扇形マーカーは「細い先端が●側、広い辺が進行方向側」になる。
-       * したがって移動方向は、三角形の広い辺の中心方向と一致させる。
+       * 扇形マーカーは「細い先端が●側、広い辺が進行方向側」。
+       * よって移動方向は、扇形の広い辺の中心方向と一致させる。
        * 画面上で上向きのとき y は減少、右向きのとき x は増加する。
        */
       const mapHeadingDeg = normalizeDeg(displayHeading - (meta.mapNorthDeg || 0));

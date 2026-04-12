@@ -77,34 +77,43 @@
       transform: translate(-50%, -50%);
       pointer-events: none;
     }
-    #headingCone {
+    #markerWrap {
       position: absolute;
       left: 50%;
       top: 50%;
+      z-index: 10;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+    #headingCone {
+      position: absolute;
+      left: 0;
+      top: 0;
       z-index: 9;
       display: none;
       width: 0;
       height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 26px solid rgba(37,99,235,.48);
-      transform: translate(-50%, -50%);
-      transform-origin: 50% 68%;
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      border-bottom: 26px solid rgba(37,99,235,.46);
+      transform: translate(-50%, -115%) rotate(0deg);
+      transform-origin: 50% 85%;
       pointer-events: none;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,.08));
     }
     #dot {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 0;
+      top: 0;
       z-index: 10;
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       background: #ef4444;
-      border: 2px solid #fff;
+      border: 4px solid #fff;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 0 4px rgba(239,68,68,.18);
+      box-shadow: 0 0 0 8px rgba(239,68,68,.16);
       pointer-events: none;
     }
     #dot.animate { animation: pulse 1.4s infinite; }
@@ -242,8 +251,10 @@
         <div id="mapTransform">
           <img id="mapImage" src="" alt="フロアマップ" />
           <div id="accuracyCircle"></div>
-          <div id="headingCone"></div>
-          <div id="dot" class="animate"></div>
+          <div id="markerWrap">
+            <div id="headingCone"></div>
+            <div id="dot" class="animate"></div>
+          </div>
           <div id="label">現在地</div>
         </div>
       </div>
@@ -369,6 +380,7 @@
     const mapWrap = document.getElementById("mapWrap");
     const mapTransform = document.getElementById("mapTransform");
     const mapImage = document.getElementById("mapImage");
+    const markerWrap = document.getElementById("markerWrap");
     const dot = document.getElementById("dot");
     const label = document.getElementById("label");
     const accuracyCircle = document.getElementById("accuracyCircle");
@@ -646,54 +658,12 @@
       return { drawW, drawH, offsetX, offsetY };
     }
 
-    /**
-     * object-fit: contain で表示された画像の「実際の描画領域」基準で、
-     * 正規化座標(左上=(0,0), 右下=(1,1))を画面座標へ変換する。
-     * 画像内部の白い部分は画像の一部として扱う。
-     */
-    function normalizedToDisplay(nx, ny) {
-      const { drawW, drawH, offsetX, offsetY } = getImageContentRect();
-      return {
-        x: offsetX + nx * drawW,
-        y: offsetY + ny * drawH
-      };
-    }
-
-    /**
-     * 画面座標を正規化座標へ変換する。
-     * 左上=(0,0), 右下=(1,1) で統一。
-     */
-    function displayToNormalized(ux, uy) {
-      const { drawW, drawH, offsetX, offsetY } = getImageContentRect();
-      return {
-        nx: Math.max(0, Math.min(1, (ux - offsetX) / drawW)),
-        ny: Math.max(0, Math.min(1, (uy - offsetY) / drawH))
-      };
-    }
-
-    /**
-     * フロア切替直後でも画像サイズが確定するまで待ってから座標を反映する。
-     * QR補正直後のズレを防ぐために使用する。
-     */
-    function waitForMapImageReady() {
-      return new Promise((resolve) => {
-        const done = () => requestAnimationFrame(() => requestAnimationFrame(resolve));
-
-        if (mapImage.complete && mapImage.naturalWidth > 0 && mapImage.clientWidth > 0) {
-          done();
-          return;
-        }
-
-        const prevOnload = mapImage.onload;
-        mapImage.onload = () => {
-          if (typeof prevOnload === "function") prevOnload();
-          done();
-        };
-      });
-    }
-
     function getDisplayPosition() {
-      return normalizedToDisplay(currentPosition.nx, currentPosition.ny);
+      const { drawW, drawH, offsetX, offsetY } = getImageContentRect();
+      return {
+        x: offsetX + currentPosition.nx * drawW,
+        y: offsetY + currentPosition.ny * drawH
+      };
     }
 
     function renderAccuracyCircle() {
@@ -709,19 +679,18 @@
 
     function getHeadingForDisplay() {
       if (headingLocked) return lockedHeadingDeg;
-      if (activeTrackingSource === "gps" && smoothGpsCourseDeg != null && lastAccuracyMeters <= GPS_BAD_ACCURACY) {
-        return normalizeDeg(smoothGpsCourseDeg + headingOffsetGPS);
-      }
+
+      /**
+       * 向き表示は GPS モードでもコンパスを優先する。
+       * こうすると歩数モードと GPS モードで見た目の向きが揃う。
+       */
       if (compassHeadingDeg != null) return normalizeDeg(compassHeadingDeg + headingOffsetStep);
       if (rawHeadingDeg != null) return normalizeDeg(rawHeadingDeg + headingOffsetStep);
+      if (smoothGpsCourseDeg != null) return normalizeDeg(smoothGpsCourseDeg + headingOffsetGPS);
       return headingDeg;
     }
 
     function renderHeading() {
-      const { x, y } = getDisplayPosition();
-      headingCone.style.left = x + "px";
-      headingCone.style.top = y + "px";
-
       const displaySourceHeading = getHeadingForDisplay();
       if (displaySourceHeading == null) {
         headingCone.style.display = "none";
@@ -729,16 +698,16 @@
       }
 
       headingDeg = displaySourceHeading;
-      const displayHeading = displaySourceHeading - getFloorConfig(currentFloor).mapNorthDeg;
+      const displayHeading = normalizeDeg(displaySourceHeading - getFloorConfig(currentFloor).mapNorthDeg);
       headingCone.style.display = "block";
-      headingCone.style.transform = `translate(-50%, -50%) rotate(${displayHeading}deg)`;
+      headingCone.style.transform = `translate(-50%, -115%) rotate(${displayHeading}deg)`;
     }
 
     function renderPosition() {
       const { x, y } = getDisplayPosition();
 
-      dot.style.left = x + "px";
-      dot.style.top = y + "px";
+      markerWrap.style.left = x + "px";
+      markerWrap.style.top = y + "px";
       label.style.left = x + "px";
       label.style.top = y + "px";
       label.textContent = currentPosition.label || "現在地";
@@ -767,15 +736,15 @@
       if (!isAdmin) return;
 
       const points = getFloorConfig(currentFloor).points || [];
+      const { drawW, drawH, offsetX, offsetY } = getImageContentRect();
 
       points.forEach((p) => {
         const el = document.createElement("div");
-        const pos = normalizedToDisplay(p.nx, p.ny);
         el.className = "point-badge";
         el.textContent = p.label;
         el.dataset.pointId = p.id;
-        el.style.left = `${pos.x}px`;
-        el.style.top = `${pos.y}px`;
+        el.style.left = `${offsetX + p.nx * drawW}px`;
+        el.style.top = `${offsetY + p.ny * drawH}px`;
 
         el.addEventListener("pointerdown", (e) => {
           draggingPointId = p.id;
@@ -1055,22 +1024,20 @@
       return points.find((p) => p.id === pointId) || null;
     }
 
-    async function applyQrAnchor(floor, nx, ny, labelText) {
-      switchFloor(floor);
-      await waitForMapImageReady();
-
-      try {
-        const pos = await getOnePosition();
-        enableAnchor(nx, ny, labelText, pos.coords.latitude, pos.coords.longitude);
-        ignoreGpsUntil = Date.now() + 10000;
-        lastAccuracyMeters = pos.coords.accuracy || 0;
-        renderPosition();
-        updateStatus("QR補正完了");
-      } catch (e) {
-        setNormalizedPosition(floor, nx, ny, labelText);
-        renderPosition();
-        updateStatus("QR補正完了（GPS取得なし）");
-      }
+    function applyQrAnchor(floor, nx, ny, labelText) {
+      getOnePosition()
+        .then((pos) => {
+          switchFloor(floor);
+          enableAnchor(nx, ny, labelText, pos.coords.latitude, pos.coords.longitude);
+          ignoreGpsUntil = Date.now() + 3000;
+          lastAccuracyMeters = pos.coords.accuracy || 0;
+          updateStatus("QR補正完了");
+        })
+        .catch(() => {
+          switchFloor(floor);
+          setNormalizedPosition(floor, nx, ny, labelText);
+          updateStatus("QR補正完了（GPS取得なし）");
+        });
     }
 
     function parseQrText(decodedText) {
@@ -1139,11 +1106,14 @@
 
     function getHeadingForDisplay() {
       if (headingLocked) return lockedHeadingDeg;
-      if (activeTrackingSource === "gps" && smoothGpsCourseDeg != null && lastAccuracyMeters <= GPS_BAD_ACCURACY) {
-        return normalizeDeg(smoothGpsCourseDeg + headingOffsetGPS);
-      }
+
+      /**
+       * 向き表示は GPS モードでもコンパスを優先する。
+       * こうすると歩数モードと GPS モードで見た目の向きが揃う。
+       */
       if (compassHeadingDeg != null) return normalizeDeg(compassHeadingDeg + headingOffsetStep);
       if (rawHeadingDeg != null) return normalizeDeg(rawHeadingDeg + headingOffsetStep);
+      if (smoothGpsCourseDeg != null) return normalizeDeg(smoothGpsCourseDeg + headingOffsetGPS);
       return headingDeg;
     }
 
@@ -1366,22 +1336,14 @@
     function moveByStep(stepMeters) {
       if (!currentFloor) return;
 
-      const displayHeading =
-        headingLocked
-          ? lockedHeadingDeg
-          : compassHeadingDeg != null
-            ? normalizeDeg(compassHeadingDeg + headingOffsetStep)
-            : rawHeadingDeg != null
-              ? normalizeDeg(rawHeadingDeg + headingOffsetStep)
-              : null;
-
+      const displayHeading = getHeadingForDisplay();
       if (displayHeading == null) return;
 
       const meta = getFloorConfig(currentFloor);
 
-      /*
-       * 0度=上(北)、90度=右(東) で統一して歩数移動する。
-       * renderHeading() も同じ heading を使うので、向きと移動方向が揃う。
+      /**
+       * 0度=画像の上方向、90度=画像の右方向として統一する。
+       * 矢印表示もこの角度を使うので、見た目と移動方向を一致させる。
        */
       const mapHeadingDeg = normalizeDeg(displayHeading - (meta.mapNorthDeg || 0));
       const theta = mapHeadingDeg * Math.PI / 180;
@@ -1542,7 +1504,12 @@
       const ux = sx + cx;
       const uy = sy + cy;
 
-            return displayToNormalized(ux, uy);
+      const { drawW, drawH, offsetX, offsetY } = getImageContentRect();
+
+      return {
+        nx: Math.max(0, Math.min(1, (ux - offsetX) / drawW)),
+        ny: Math.max(0, Math.min(1, (uy - offsetY) / drawH))
+      };
     }
 
     mapWrap.addEventListener("click", async (event) => {
